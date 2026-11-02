@@ -1,183 +1,318 @@
-# zsh-git-good
+# `zsh-git-good`
 
-`zsh-git-good` prepares Git commit-message candidates from the current staged
-state and exposes them as ordinary
+<p align="center">
+  <img src="./asset/logo/zsh-git-good.png" width="35%" alt="zsh-git-good logo">
+</p>
+
+<h3 align="center">Prepared Git commit messages, right where you type them.</h3>
+
+<p align="center">
+  <a href="#-start-with-zsh-git-good">Start</a> ·
+  <a href="#-operate-it-carefully">Safety and privacy</a> ·
+  <a href="./docs/INSTALLATION.md">Installation</a> ·
+  <a href="#-contributing">Contributing</a>
+</p>
+
+<p align="center">
+  <img alt="Go 1.26+" src="https://img.shields.io/badge/go-1.26%2B-00ADD8?style=flat-square">
+  <img alt="Zsh 5.0.8+" src="https://img.shields.io/badge/zsh-5.0.8%2B-89e051?style=flat-square">
+  <img alt="Local deterministic default" src="https://img.shields.io/badge/default-local%20deterministic-2e7d32?style=flat-square">
+</p>
+
+`zsh-git-good` prepares commit-message candidates from your staged Git changes
+and displays them through ordinary
 [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) ghost
-text:
+text. A private local daemon prepares candidates after each prompt. While you
+type, the plugin looks up a candidate for the exact current staged state;
+generation stays out of the typing path.
 
 ```zsh
 git commit -m 'chore(cache): update 2 staged files'
-              # ^ prepared autosuggestion; accept with your normal
-              #   forward-character or end-of-line binding
+# The message is prepared ghost text. Accept it with your usual
+# autosuggestions binding, review the command, then press Enter yourself.
 ```
 
-It is a Zsh-only autosuggestion strategy, not a `git` wrapper, prompt theme,
-TUI, or editor frontend. The plugin registers a `git-good` strategy and
-leaves rendering to autosuggestions. A private local daemon prepares candidates
-after each prompt; while typing, the strategy only looks up a candidate already
-prepared for the exact staged state. It does not wait for generation.
+**Prepare, review, then commit.** Accepting a suggestion fills the shell buffer.
+The plugin never stages files or executes a commit. The default provider is local
+and deterministic; Ollama and OpenAI require explicit configuration. Normal use
+requires no model, API key, account, telemetry, or cross-device sync.
 
-The default provider is deterministic and local. Ollama and OpenAI are explicit
-opt-in providers; neither downloads a model nor contacts a network by default.
-There is no telemetry, automatic staging, automatic commit, account, or
-cross-device sync.
+## Contents
 
-## Table of Contents
+- [🚀 Start with zsh-git-good](#-start-with-zsh-git-good)
+- [🤔 Why zsh-git-good?](#-why-zsh-git-good)
+- [🔎 How it works](#-how-it-works)
+- [👀 Choose an entry point](#-choose-an-entry-point)
+- [🧪 See it in action](#-see-it-in-action)
+- [🛟 Operate it carefully](#-operate-it-carefully)
+- [📚 Learn more](#-learn-more)
+- [🌟 Contributing](#-contributing)
+- [License and release status](#license-and-release-status)
 
-- [Getting Started](#getting-started)
-  - [System Compatibility](#system-compatibility)
-  - [Prerequisites](#prerequisites)
-  - [Basic Installation](#basic-installation)
-  - [Manual Inspection](#manual-inspection)
-- [Using zsh-git-good](#using-zsh-git-good)
-  - [Prepared Suggestions](#prepared-suggestions)
-  - [Configuration](#configuration)
-  - [Diagnostics](#diagnostics)
-  - [FAQ](#faq)
-- [Advanced Topics](#advanced-topics)
-  - [Advanced Installation](#advanced-installation)
-  - [Repository Message Policy](#repository-message-policy)
-  - [Providers and Context](#providers-and-context)
-  - [Activity and Neovim](#activity-and-neovim)
-  - [Local Preference Learning](#local-preference-learning)
-  - [Commit-body Composition](#commit-body-composition)
-  - [Privacy, Storage, and Freshness](#privacy-storage-and-freshness)
-  - [Evaluation and Reliability](#evaluation-and-reliability)
-- [Getting Updates](#getting-updates)
-- [Uninstalling zsh-git-good](#uninstalling-zsh-git-good)
-- [Contributing and Development](#contributing-and-development)
-- [Project Status and License](#project-status-and-license)
-
-## Getting Started
-
-### System Compatibility
-
-The current evidence is intentionally narrower than a general compatibility
-claim:
-
-| Environment | Status |
-| --- | --- |
-| Fedora Linux 43 | Source/runtime, Zsh integration, installation, uninstall, and release-snapshot checks were exercised locally. |
-| Linux `amd64` and `arm64` | Release snapshots cross-compile for both; only the Fedora runtime path has been executed. |
-| macOS `amd64` and `arm64` | Release snapshots cross-compile for both; no macOS runtime execution has been performed. |
-| Other operating systems | Not verified. |
-
-The plugin requires Zsh plus `zsh-autosuggestions`. It does not support Bash,
-Fish, PowerShell, or a standalone terminal renderer.
+## 🚀 Start with zsh-git-good
 
 ### Prerequisites
 
-You need:
+Install Git, Zsh 5.0.8 or newer, Go 1.26 or newer, and
+[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions).
+The dependency must load before this plugin. The current CI configuration pins
+Go 1.26.7. Make is used for the build; Python 3 is needed for the full test suite
+and release preparation, but not ordinary runtime.
 
-- Git;
-- Zsh 5.0.8 or later;
-- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
-  sourced before this plugin; and
-- Go 1.26 or later to build the source checkout.
-
-On Fedora, install the documented runtime prerequisites with:
+For example, on Fedora:
 
 ```zsh
-sudo dnf install git zsh zsh-autosuggestions golang
+sudo dnf install git zsh zsh-autosuggestions golang make python3
 ```
 
-The Fedora autosuggestions package normally provides
-`/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh`. Ollama, an OpenAI
-API key, and Neovim are optional; none is needed for the deterministic default.
+The Fedora autosuggestions package normally installs its source at
+`/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh`. Setup also discovers
+common Homebrew locations or accepts an explicit `--autosuggestions` path.
+Ollama, Neovim, and an OpenAI API key are optional.
 
-### Basic Installation
+### Build and use the setup wizard
 
-The supported install is a reviewed source checkout. The installer does not
-download a model or edit `.zshrc`.
+From a reviewed source checkout:
 
 ```zsh
 git clone https://github.com/gongahkia/zsh-git-good.git
 cd zsh-git-good
 make build
-sh scripts/install.sh --source "$PWD"
+.build/zsh-git-good setup --wizard
 ```
 
-The default prefix is `$HOME/.local`. Add these lines after the line that
-sources `zsh-autosuggestions` in `.zshrc`:
+The wizard reviews the installation prefix, shell startup file, dependency,
+provider, message preferences, and keybinding before applying changes. It
+installs the helper and plugin and manages one marked startup block, with
+backups and undo information. It honors `ZDOTDIR` and preserves symlinked
+startup files. Selecting a provider does not download a model or grant cloud
+access.
+
+Open a fresh Zsh session, then verify the installation:
+
+```zsh
+zsh-git-good version --json
+zsh-git-good doctor --check
+zsh-git-good setup --check --demo
+```
+
+The demo uses a disposable repository and isolated product data to prepare a
+real deterministic suggestion through the daemon/socket path. It creates no
+commit and cleans up its temporary daemon and files.
+
+### Install without managed shell edits
+
+For manual shell configuration, use the source installer instead of the wizard:
+
+```zsh
+make build
+sh scripts/install.sh --source "$PWD" --prefix "$HOME/.local"
+```
+
+Add these lines to `.zshrc` after loading `zsh-autosuggestions`:
 
 ```zsh
 path=("$HOME/.local/bin" $path)
 source "$HOME/.local/share/zsh-git-good/zsh-git-good.plugin.zsh"
 ```
 
-Start a fresh Zsh session, then check installation and load order:
+This script installs the executable and plugin, plus license/notices files when
+present. It does not edit `.zshrc`. A custom prefix uses the same `bin` and
+`share/zsh-git-good` layout. Inspect `Makefile`, `scripts/install.sh`, and
+`zsh-git-good.plugin.zsh` before installation; there is no required remote
+shell installer.
+
+For development, run `make build`, load autosuggestions, and source the checkout:
 
 ```zsh
-zsh-git-good version --json
+path=("$PWD/.build" $path)
+source "$PWD/zsh-git-good.plugin.zsh"
+```
+
+### Compatibility and existing installations
+
+| Environment | Recorded evidence |
+| --- | --- |
+| Fedora Linux 43 | Source/runtime, shell integration, setup, removal, and release-snapshot checks were exercised locally. |
+| macOS `amd64` | The October 2026 audit records Go/Zsh/Neovim integration, lifecycle, race, fuzz, and snapshot checks on an Intel Mac. |
+| Linux and macOS `amd64` / `arm64` | Snapshot builds cover all four targets; cross-compilation alone does not establish runtime support on every target. |
+| Other operating systems and shells | Not verified; the interactive plugin requires Zsh and zsh-autosuggestions. |
+
+The optional Neovim adapter emits activity only. Bash, Fish, and PowerShell do
+not have suggestion adapters. See [installation evidence](docs/INSTALLATION.md)
+for the tested versions and remaining release checks.
+
+The project rename changes the executable, plugin filename, `git-good` strategy,
+`ZSH_GIT_GOOD_*` variables, Lua module, and product-specific XDG directories.
+Previous installations and data are **not migrated automatically**. Before
+switching, use the previous installed helper to remove its managed integration,
+or remove its manual source line and unload it. Start a fresh shell after
+installing this version. Review any preferences you copy into the new config
+location, update repository policy filenames to `.zsh-git-good.toml`, and grant
+optional data access again through the new helper. Old installation records and
+undo journals should remain with the version that created them.
+
+## 🤔 Why zsh-git-good?
+
+A commit message should describe the changes you actually staged. Preparing it
+in the background lets the shell offer useful text while keeping review and
+execution in your hands.
+
+| When you need to… | zsh-git-good helps by… |
+| --- | --- |
+| start a commit message without leaving the terminal | supplying ghost text through your existing autosuggestions acceptance and dismissal bindings |
+| avoid reusing a message after staging different changes | matching candidates to exact Git index, HEAD, branch, configuration, repository, and worktree identities |
+| keep typing independent of inference | preparing candidates in the daemon and performing only a bounded lookup from the strategy |
+| follow repository conventions | validating declarative type/scope, path mapping, line-length, capitalization, and body policies |
+| inspect why a message was proposed or withheld | exposing context metadata, grounding results, provider provenance, and actionable diagnostics |
+| keep normal use local | using deterministic generation by default, with separately configured local/cloud providers |
+| tune or temporarily stop suggestions | offering validated preferences, explicit feedback, disable/enable, and expiring snoozes |
+| recover from installation or configuration mistakes | recording managed changes with backups, conservative repair, and undo |
+
+The plugin registers `git-good` ahead of existing strategies and leaves display
+to zsh-autosuggestions. It does not define a `git` function, replace the prompt,
+or install a separate terminal renderer.
+
+## 🔎 How it works
+
+1. **Observe after the prompt.** A background request starts the private daemon
+   when needed and snapshots the current repository. The default idle timeout is
+   15 minutes.
+2. **Identify the exact staged state.** Git plumbing reads the index tree,
+   HEAD/unborn state, branch, and repository/worktree identity. Relevant settings
+   and context versions participate in the fingerprint. A private copy of the
+   index keeps the real index unchanged.
+3. **Prepare bounded context and candidates.** Background generation compiles
+   staged metadata and selected staged content, applies redaction, then invokes
+   the configured provider. The default deterministic provider uses conservative
+   metadata and textual facts. Optional provider output is treated as untrusted.
+4. **Validate before publication.** Grounding checks evidence references and
+   unsupported claims; repository policy and optional local style learning rank
+   eligible candidates. Superseded jobs are cancelled, and staged state is
+   checked again around atomic cache publication.
+5. **Look up while typing.** The strategy accepts a conservative commit-message
+   command subset and requests only an already prepared candidate matching the
+   current fingerprint. Missing, stale, conflicting, or unsupported states yield
+   quietly so other autosuggestion strategies can continue.
+6. **Let you accept and execute.** A matching candidate extends your typed
+   prefix with shell-safe text. Your ordinary keybinding accepts it into the
+   buffer; only your subsequent command submission runs Git.
+
+Unstaged content is excluded from generation. Git may create an immutable,
+unreferenced tree object while calculating an index identity, but the plugin
+creates no commit, ref, or staged entry. Exact identity and bounded retention
+handle obsolete cache records; they do not claim to eliminate every publication
+race. See [architecture](docs/ARCHITECTURE.md) for the full concurrency and
+freshness model.
+
+## 👀 Choose an entry point
+
+| Entry point | Best for | Start here |
+| --- | --- | --- |
+| Zsh ghost text | preparing a subject during your usual commit workflow | Type `git commit -m ` after staging changes. |
+| Guided setup | installing, customizing, repairing, disabling, or removing | `zsh-git-good setup --wizard` |
+| Scripted preferences | applying a validated batch of settings | `zsh-git-good setup customize --set commit.line_length=72` |
+| Troubleshooting | inspecting the installed shell, daemon, and current repository | `zsh-git-good doctor --check` and `zsh-git-good status --cwd . --json` |
+| Candidate inspection | reviewing prepared messages and their evidence | `zsh-git-good candidates --cwd .` and `zsh-git-good explain --cwd . --json` |
+| Commit-body composition | editing a prepared subject and a staged-path body | `zsh-git-good compose --cwd .` |
+| Evaluation | checking a synthetic corpus or replaying local history | `zsh-git-good evaluate --fixtures --json` |
+| Optional Neovim activity | contributing file/diagnostic metadata with consent | `require("zsh-git-good").setup(...)` |
+
+`compose` reports a private message-file path after editor and state checks; it
+does not invoke `git commit`. A repository policy requiring a body reserves an
+eligible subject for compose instead of showing it as ghost text.
+
+## 🧪 See it in action
+
+### Prepare, accept, and cycle a message
+
+Stage the changes you want to describe with your normal Git workflow, then return
+to the prompt. Type `git commit -m `, including the trailing space, and accept
+with your usual autosuggestions binding. Continuing to type a prefix narrows the
+existing candidates.
+
+Ctrl-X followed by g (`^Xg`) cycles prepared candidates in the `emacs` and `viins`
+keymaps by default. It wraps at the end without generating new text or starting
+a daemon. The next prompt resets selection to the primary candidate. Disable
+cycling before loading the plugin with `ZSH_GIT_GOOD_CYCLE_KEYBINDING=none`, or
+set a persistent binding in configuration.
+
+The parser accepts forms such as `git commit -m ` and
+`command git commit -m `. It rejects shell operators/substitutions, completed
+message arguments, `--amend`, `--fixup`, `--squash`, unrelated commands, and
+cursors away from the end. Suggestions always describe the staged snapshot;
+review commands using `-a` separately because Git can include unstaged tracked
+changes when executing them.
+
+### Inspect and tune
+
+```zsh
+zsh-git-good observe --cwd .
+zsh-git-good status --cwd . --json
+zsh-git-good fingerprint --cwd .
+zsh-git-good candidates --cwd .
+zsh-git-good explain --cwd . --json
+zsh-git-good suggest --cwd . --buffer 'git commit -m ' --json
+
+zsh-git-good setup customize \
+  --set commit.capitalization=sentence \
+  --set commit.line_length=72 \
+  --set suggestions.candidate_count=2
+zsh-git-good config show
+zsh-git-good feedback useful --candidate 1 --cwd .
+zsh-git-good feedback show --cwd .
+```
+
+Explicit `observe` schedules background work. Inspection commands report state
+without starting generation. Feedback labels a currently prepared candidate and
+retains scoped hashes and labels, rather than candidate text. Other labels are
+`too-generic` and `incorrect`. New shells pick up keybinding changes; subsequent
+observations pick up generation preferences.
+
+### Pause, repair, and recover
+
+```zsh
+zsh-git-good disable --repo --cwd .
+zsh-git-good enable --repo --cwd .
+zsh-git-good snooze 30m --repo --cwd .
+zsh-git-good enable --repo --cwd .
+
 zsh-git-good doctor --json
+zsh-git-good doctor --check
+zsh-git-good doctor --fix
+zsh-git-good undo list
+zsh-git-good undo <transaction-id>
+zsh-git-good daemon stop
 ```
 
-If autosuggestions was not loaded first, the plugin prints an actionable
-diagnostic and remains inactive. It does not configure the dependency for you.
+Disable, enable, and snooze apply globally when `--repo` is omitted. Doctor
+reports exact actions; `--check` verifies real normal/login shell startup, and
+`--fix` makes supported repairs with backups. It preserves ambiguous shell
+blocks, conflicting later edits, and unowned artifacts for manual review.
+Stopping the daemon alone is temporary: the next enabled prompt can start it.
 
-### Manual Inspection
+### Troubleshoot a quiet prompt
 
-There is no one-line remote installer. Inspect the checkout, build recipe, and
-installer before running it:
+| Symptom | Check |
+| --- | --- |
+| No ghost text after staging | Return to a prompt, allow preparation to finish, then inspect `status --cwd . --json` and `candidates --cwd .`. |
+| Plugin is inactive | Load zsh-autosuggestions first and run `doctor --check` in a fresh shell. |
+| Candidates exist but the typed prefix has no match | Inspect `suggest --cwd . --buffer 'git commit -m prefix' --json`; typing does not request a new generation. |
+| Suggestions remain hidden | Check disable/snooze state, index conflicts, unsupported command syntax, and any required-body policy. |
+| Optional provider fails | Inspect `doctor --json`, provider settings, model availability, and the configured fallback; OpenAI requires a grant and has no fallback. |
 
-```zsh
-git clone https://github.com/gongahkia/zsh-git-good.git
-cd zsh-git-good
-sed -n '1,240p' Makefile
-sed -n '1,260p' scripts/install.sh
-sed -n '1,260p' zsh-git-good.plugin.zsh
-make build
-sh scripts/install.sh --source "$PWD"
-```
+The typing strategy stays quiet on failure. Administrative commands distinguish
+pending generation, stale state, unmatched prefixes, provider errors, and
+configuration problems without printing raw compiled context.
 
-The source installer atomically replaces only its executable and plugin under
-the selected prefix. See [advanced installation](#advanced-installation) for a
-custom prefix and the reviewed archive flow.
+## 🛟 Operate it carefully
 
-## Using zsh-git-good
+### Configuration and repository policy
 
-### Prepared Suggestions
-
-On every prompt, the plugin asks the local daemon to observe the current
-repository in the background. Once the current staged state has a fresh
-candidate, place the cursor after the space in this supported command form:
-
-```zsh
-git commit -m
-```
-
-Accept, dismiss, or continue typing with your existing autosuggestions bindings.
-A typed message prefix narrows existing prepared candidates; it does not
-synchronously generate another. Unsupported commands, no staged changes,
-conflicts, a stale candidate, daemon startup, and unavailable optional providers
-stay silent in the interactive strategy.
-
-Only conservative `git commit` forms such as `git commit -m` and
-`command git commit -m` are accepted. The parser rejects shell operators and
-substitutions, completed message arguments, `--amend`, `--fixup`, `--squash`,
-other Git commands, and a cursor that is not at the end of the buffer.
-
-#### Cycling Prepared Candidates
-
-`^Xg` is the default emacs-keymap binding for cycling prepared candidates. It
-wraps after the available candidates and does not start a daemon or request
-generation. The first prompt after normal stage/unstage work returns to the
-primary candidate.
-
-Set a persistent binding in configuration, or disable cycling for one shell
-before sourcing the plugin:
-
-```zsh
-ZSH_GIT_GOOD_CYCLE_KEYBINDING=none
-source "$HOME/.local/share/zsh-git-good/zsh-git-good.plugin.zsh"
-```
-
-### Configuration
-
-Global settings are declarative TOML at
-`$XDG_CONFIG_HOME/zsh-git-good/config.toml`, falling back to
-`$HOME/.config/zsh-git-good/config.toml`. Unknown keys and malformed values
-are rejected; configuration is data, not shell code.
+Global TOML lives at `$XDG_CONFIG_HOME/zsh-git-good/config.toml`, falling back to
+`$HOME/.config/zsh-git-good/config.toml`. `ZSH_GIT_GOOD_CONFIG` overrides that
+path for testing or troubleshooting. Unknown keys and malformed values are
+rejected. A representative configuration is:
 
 ```toml
 [daemon]
@@ -191,138 +326,35 @@ max_bytes = 33554432
 max_age = "168h"
 
 [provider]
-name = "deterministic" # deterministic, ollama, or openai
-# model = "qwen2.5-coder:0.5b" # required for ollama or openai
+name = "deterministic"
 timeout = "8s"
-fallback = "deterministic" # deterministic or none; openai requires none
+fallback = "deterministic"
 
 [grounding]
-ambiguity = "conservative" # conservative, quiet, visible, or hintable
+ambiguity = "conservative"
+
+[commit]
+line_length = 72
+capitalization = "lower"
+body = "optional"
+
+[suggestions]
+candidate_count = 3
+
+[learning]
+enabled = true
 
 [activity]
-retention = "30m" # bounds memory; it does not grant collection
+retention = "30m"
 max_events = 256
 
 [zsh]
 cycle_keybinding = "^Xg"
-
-[diagnostics]
-verbose = false
+cycle_keymaps = ["emacs", "viins"]
 ```
 
-Provider and context-relevant changes make old candidates ineligible for the
-new configuration. [CONFIGURATION.md](docs/CONFIGURATION.md) documents all
-bounds, defaults, and precedence.
-
-### Diagnostics
-
-The executable supplies setup and inspection commands; they are not another
-commit-message interface.
-
-```zsh
-zsh-git-good version --json
-zsh-git-good doctor --json
-zsh-git-good status --json
-zsh-git-good fingerprint --cwd .
-zsh-git-good context --cwd . --provider ollama
-zsh-git-good candidates --cwd .
-zsh-git-good explain --cwd . --json
-zsh-git-good suggest --cwd . --buffer 'git commit -m ' --json
-zsh-git-good daemon stop
-```
-
-`context` reports source categories, byte budgets, fingerprints, truncation,
-and redaction counts without printing compiled repository content. `explain`
-reports candidate policy, grounding, and bounded learning adjustments.
-`suggest --json` distinguishes unsupported commands, repository/daemon states,
-stale or pending cache results, malformed replies, and unmatched prefixes.
-
-### FAQ
-
-#### Why is there no ghost text?
-
-A cold repository, new staged state, or daemon restart has no candidate yet.
-Return to a prompt after staging changes, then type a supported
-`git commit -m` prefix. Use `zsh-git-good status --json` and
-`zsh-git-good candidates --cwd .` to distinguish a pending candidate from an
-unsupported or stale state.
-
-#### Does it change Git or create a commit?
-
-No. The plugin does not define `git` or invoke `git commit`. It gives
-autosuggestions a shell-safe continuation; accepting it still leaves the normal
-Git command under your control.
-
-#### Why is the plugin inactive?
-
-`zsh-autosuggestions` must be sourced before
-`zsh-git-good.plugin.zsh`. Source it first, start a new shell, and use
-`zsh-git-good doctor --json` for dependency and runtime diagnostics.
-
-#### Does normal use send repository content to a service?
-
-No. The deterministic default is local, and the normal lookup does not compile
-context or call a provider. Ollama must be selected explicitly and is
-loopback-only. OpenAI also needs a configured API key and an explicit,
-provider-specific grant. See [providers and context](#providers-and-context).
-
-## Advanced Topics
-
-### Advanced Installation
-
-#### Custom Prefix
-
-Build the checked-out revision and choose a non-root prefix. The installer
-creates or replaces only `<prefix>/bin/zsh-git-good` and
-`<prefix>/share/zsh-git-good/zsh-git-good.plugin.zsh`.
-
-```zsh
-make build
-sh scripts/install.sh --source "$PWD" --prefix /chosen/prefix
-```
-
-Then load it after autosuggestions:
-
-```zsh
-path=("/chosen/prefix/bin" $path)
-source "/chosen/prefix/share/zsh-git-good/zsh-git-good.plugin.zsh"
-```
-
-#### Installing a Reviewed Release Archive
-
-The snapshot builder creates Linux and macOS `amd64`/`arm64` archives
-containing the executable, plugin, README, and changelog. After independently
-verifying the published checksum, install an archive without a source checkout:
-
-```zsh
-sha256sum -c checksums.txt
-sh scripts/install-release.sh \\
-  --archive zsh-git-good_0.1.0-rc.1_linux-amd64.tar.gz \\
-  --prefix "$HOME/.local"
-```
-
-The archive installer accepts only expected members and atomically installs the
-same two product files. It does not modify shell configuration, cache, state,
-data, or managed-model data. These are validation snapshots, not published
-releases, while the repository has no license.
-
-#### Manual Plugin Loading
-
-For development, load a built checkout directly after autosuggestions:
-
-```zsh
-path=("$PWD/.build" $path)
-source "$PWD/zsh-git-good.plugin.zsh"
-```
-
-Run `make build` first. Run `zsh_git_good_unload` to remove the plugin from
-the current shell without restarting it.
-
-### Repository Message Policy
-
-A repository may include a strict declarative `.zsh-git-good.toml` file that
-constrains a Conventional Commit convention, allowed types/scopes,
-path-to-scope mappings, line length, capitalization, and body preference:
+Repository policy uses `.zsh-git-good.toml` and only the supported `[commit]`
+keys. For example:
 
 ```toml
 [commit]
@@ -331,92 +363,99 @@ types = ["feat", "fix", "test", "docs"]
 scopes = ["api", "cli"]
 scope_paths = ["internal/api=api", "cmd=cli"]
 line_length = 72
-capitalization = "lower" # or "sentence"
-body = "optional"         # forbid, optional, or required
+capitalization = "lower"
+body = "optional" # forbid, optional, or required
 ```
 
-Malformed or unknown policy entries make the state unsupported instead of being
-partially applied. Policy cannot select a provider or endpoint, read
-credentials, grant cloud access or activity collection, weaken redaction, or
-execute a command. It participates in the exact candidate identity. See
-[POLICY.md](docs/POLICY.md) for its grammar and fixed precedence.
+Policy participates in the candidate fingerprint. It cannot select providers,
+read credentials, grant activity/cloud access, weaken redaction, or execute
+commands. See [configuration](docs/CONFIGURATION.md) and
+[repository policy](docs/POLICY.md) for the full grammar, bounds, and precedence.
 
-### Providers and Context
+### Providers and context
 
-Before an optional provider runs, a background job compiles bounded staged-only
-context: selected paths and patch, nearby declarations, root manifests, bounded
-history and branch evidence, plus consented derived activity signals. It excludes
-working-tree content and applies common secret-pattern redaction and
-untrusted-data framing. Redaction is defense in depth, not a guarantee that
-every secret form is detectable.
+Background context compilation selects bounded staged paths and patch content,
+nearby declarations, manifests, history/branch evidence, and consented derived
+activity signals. Working-tree content is excluded. Common secret-pattern
+redaction and untrusted-data framing apply before provider submission; redaction
+cannot guarantee detection of every secret.
 
-#### Deterministic Provider
+| Provider | Requirements and behavior | Validation boundary |
+| --- | --- | --- |
+| `deterministic` | Default; uses staged metadata and conservative textual facts, without a model or network. | Covered by the deterministic regression/evaluation path. |
+| `deterministic-baseline` | Frozen metadata-template control for comparisons. | Useful for reproducible evaluation; not a separate interactive frontend. |
+| `ollama` | Explicit model selection and an already available runtime at `http://127.0.0.1:11434`; no automatic model pull. | Documented small-model trials failed their local gate; model usefulness is not established by mock tests. |
+| `openai` | Explicit model, environment credential, and provider-specific context grant; `fallback = "none"`. | Mock contract coverage; live compatibility and quality remain unverified. |
 
-`deterministic` is the default. It needs no model runtime or network request
-and remains the test oracle. It creates ordered conservative Conventional Commit
-candidates from bounded staged Git metadata.
-
-#### Ollama Provider
-
-Choose an already installed local model explicitly:
+For Ollama, configure an already installed model:
 
 ```toml
 [provider]
 name = "ollama"
-model = "qwen2.5-coder:0.5b"
+model = "your-installed-model"
 timeout = "8s"
 fallback = "deterministic" # or "none"
+
+[ollama]
+context_tokens = 4096
+output_tokens = 256
+cold_timeout = "30s"
+keep_alive = "5m"
 ```
 
-The adapter accepts only `http://127.0.0.1:11434`, never downloads or pulls a
-model, and treats output as untrusted structured data. `doctor --json` can
-inspect the loopback runtime and locally installed model names without running
-or downloading one. Three Qwen models tested through the frozen local
-evaluation gate produced no prepared candidates on the documented Fedora host,
-so deterministic remains the default. That result is not a general
-model-quality claim; see [PROVIDERS.md](docs/PROVIDERS.md) and
-[EVALUATION.md](docs/EVALUATION.md).
-
-#### OpenAI Provider
-
-OpenAI is default-deny and has no automatic fallback. Select it globally, set
-the key only in the environment, preview bounded categories, then replace the
-complete context-class grant explicitly:
+For OpenAI, select a model available to your account and disable fallback:
 
 ```toml
 [provider]
 name = "openai"
-model = "gpt-5"
+model = "your-openai-model"
 timeout = "8s"
 fallback = "none"
 ```
 
+Then provide the credential in the environment and explicitly review/grant
+context classes:
+
 ```zsh
 export OPENAI_API_KEY='...'
 zsh-git-good cloud preview --provider openai --cwd . --json
-zsh-git-good cloud grant openai \\
+zsh-git-good cloud grant openai \
   --classes staged_diff,repository_context --confirm
-```
-
-The adapter reads `OPENAI_API_KEY` only at request time, uses a non-streaming
-structured request with `store: false`, and rechecks the grant and exact staged
-state before each HTTP attempt. `store: false` is a request setting, not a
-statement about all provider-side data handling. Review current provider
-controls before granting context. Revoke access with:
-
-```zsh
 zsh-git-good cloud revoke openai
 ```
 
-Revocation removes that provider’s cached records and makes later lookup fail
-closed. No live OpenAI credential or request was used for V1 validation; live
-compatibility, billing, availability, and model quality remain unverified. Read
-[CLOUD.md](docs/CLOUD.md) for grant classes and the request lifecycle.
+Preview inspects bounded categories. A grant replaces the complete set of
+allowed classes. Each HTTP attempt rechecks permission and the exact staged
+state. Revocation invalidates cloud-derived cache records. Requests are
+non-streaming with `store: false`; that setting is not a guarantee about all
+provider-side data handling. Credentials are read at request time and are not
+stored in configuration, prompts, or candidate records. See
+[providers](docs/PROVIDERS.md), [context](docs/CONTEXT.md), and
+[cloud controls](docs/CLOUD.md).
+
+### Local privacy, storage, and freshness
+
+The daemon normally listens at `$XDG_RUNTIME_DIR/zsh-git-good/daemon.sock`, with
+a private XDG cache fallback. Its socket is `0600` inside a `0700` directory.
+IPC is local, versioned, bounded, and deadline-limited. Normal typing performs
+an exact-state lookup without compiling context or contacting a provider.
+
+Candidate cache records contain generated message metadata and provenance;
+they can reveal information derived from staged paths. Default retention is
+512 records, 32 MiB, and seven days. Records are isolated by repository and
+worktree, and malformed, expired, or excess records are collected. A narrow
+publication race can leave an obsolete record, but an exact fingerprint/scope
+lookup will not serve it for a different staged state.
+
+Preferences, learning, feedback, lifecycle backups, and evaluation reports use
+product-specific XDG locations. Local history reports and edited message files
+can contain private text. Keep them outside public working trees and review
+retention settings for sensitive repositories. Details are in
+[privacy](docs/PRIVACY.md) and the [threat model](docs/THREAT-MODEL.md).
 
 ### Activity and Neovim
 
-Activity is disabled by default. Configuration can bound memory retention, but
-only an explicit user command can grant it:
+Activity collection starts disabled. Retention settings alone do not grant it:
 
 ```zsh
 zsh-git-good permissions
@@ -424,14 +463,14 @@ zsh-git-good permissions enable activity
 zsh-git-good permissions revoke activity
 ```
 
-With the grant, asynchronous Zsh hooks classify a small allowlist of Git, test,
-and build events. They retain a recognized class, exit status, and duration;
-they do not retain command arguments, environment, standard input, standard
-output, or standard error. Events are repository/worktree scoped, bounded, and
-memory-only. Transparent command-output capture is unsupported.
+With consent, asynchronous shell hooks emit allowlisted Git, test, and build
+classes, exit status, and duration. They retain no command arguments,
+environment, standard input, or terminal output. Events are bounded,
+repository/worktree-scoped, and memory-only. Grant revocation, clearing, or
+expiry invalidates suggestions derived from the old activity state.
 
-Neovim 0.10+ is an optional activity producer, not another suggestion frontend.
-After adding this source checkout to Neovim’s runtime path and granting activity:
+Neovim 0.10+ can contribute file events and capped diagnostic severity counts.
+Add this checkout to its runtime path, grant activity, then configure:
 
 ```lua
 require("zsh-git-good").setup({
@@ -440,17 +479,19 @@ require("zsh-git-good").setup({
 })
 ```
 
-It emits a buffer path, session ID, and capped diagnostic severity counts; it
-does not read buffer content, call providers, or render suggestions. Installers
-do not install the Lua adapter. See [ACTIVITY.md](docs/ACTIVITY.md) and
-[NEOVIM.md](docs/NEOVIM.md).
+The adapter emits metadata such as buffer paths and session IDs; it reads no
+buffer content, calls no provider, and renders no suggestions. Installers do
+not install the Lua adapter. See [activity](docs/ACTIVITY.md) and
+[Neovim setup](docs/NEOVIM.md).
 
-### Local Preference Learning
+### Learning, feedback, and commit bodies
 
-Local preference learning is enabled by default per repository identity. It
-records bounded aggregate style counts from completed local commits, then
-reranks only candidates that already passed policy and grounding. It does not
-fine-tune a model, create a frontend, or treat displayed text as accepted.
+Local style learning is enabled by default. It aggregates bounded type/scope,
+subject-shape, and limited verb statistics from completed local commits, then
+reranks candidates that already passed policy and grounding. It does not retain
+commit subjects/bodies, diffs, remotes, credentials, or provider grants in the
+learning profile. Linked worktrees share a profile while their candidate caches
+remain separate.
 
 ```zsh
 zsh-git-good learning status --cwd .
@@ -461,60 +502,89 @@ zsh-git-good learning export --cwd . > profile.json
 zsh-git-good learning import --cwd . --file profile.json
 ```
 
-Profiles contain aggregate type/scope, subject-shape, and limited verb
-statistics—not commit subjects/bodies, source, diffs, activity, remotes,
-credentials, candidates, or provider grants. Linked worktrees share a profile;
-candidate caches stay worktree-specific. Transfer from a known matching clone
-requires `--confirm`. See [LEARNING.md](docs/LEARNING.md).
+Importing from a known matching clone requires `--confirm`. Learning statistics
+and explicit usefulness feedback are separate from human evaluation ratings.
+See [learning](docs/LEARNING.md).
 
-### Commit-body Composition
-
-Normal ghost text is a single-line subject. `zsh-git-good compose` is a
-separate explicit editor workflow for a prepared, grounded candidate:
+For a body, use the explicit editor workflow:
 
 ```zsh
 zsh-git-good compose --cwd .
 zsh-git-good compose --cwd . --candidate 1 --json
 ```
 
-It proposes a subject plus a grounded staged-path body, opens the configured Git
-editor, then rechecks the exact staged fingerprint. It reports an owner-only
-message-file path; it neither stages content nor invokes `git commit`. If state
-or policy changes during editing, the edited file remains available and is not
-silently used.
+Compose proposes a prepared subject and bounded staged-path body, invokes the
+configured Git editor, and rechecks staged identity and policy afterwards. It
+reports an owner-only message-file path. If state or policy changes during
+editing, the file is retained for review. User edits remain user-authored; they
+are not relabeled as automatically grounded claims. See [compose](docs/COMPOSE.md).
 
-A repository policy that requires a body holds an eligible prepared subject for
-compose instead of rendering it as ghost text. A policy that forbids bodies also
-forbids this workflow. See [COMPOSE.md](docs/COMPOSE.md).
+### Updates, removal, and recovery
 
-### Privacy, Storage, and Freshness
+There is no automatic updater. Review the desired source revision and rebuild.
+For an installation managed by setup:
 
-Normal lookup uses the current exact staged-state identity plus a short bounded
-owner-only Unix-socket lookup. It does not compile context, invoke a provider,
-or contact a network. The daemon normally uses
-`$XDG_RUNTIME_DIR/zsh-git-good/daemon.sock`, a `0600` socket inside a
-`0700` directory, with a private XDG cache fallback.
+```zsh
+cd /path/to/zsh-git-good
+git pull --ff-only
+make build
+.build/zsh-git-good setup upgrade --source "$PWD"
+zsh-git-good version --json
+zsh-git-good doctor --check
+```
 
-Candidate records are private bounded metadata below the XDG cache location.
-Default collection retains at most 512 records, 32 MiB, and seven days. Records
-are keyed by repository/worktree identity and a fingerprint of the index,
-HEAD/unborn state, branch, relevant configuration, and context identity.
-Unstaged working-tree content is excluded.
+For a manual installation, rerun `scripts/install.sh` with the same prefix and
+start a fresh shell. Stop an older daemon with `zsh-git-good daemon stop` so the
+next prompt starts the installed build.
 
-A final publication race can leave an obsolete record until collection. It
-cannot match a later exact fingerprint and scope, so it cannot render for the
-new staged state; retention remains bounded. This is bounded stale storage, not
-a claim that the race is eliminated.
+Remove a managed installation with:
 
-The cache can contain generated metadata derived from staged paths. Tighten its
-limits or remove product cache data for sensitive repositories. See
-[PRIVACY.md](docs/PRIVACY.md), [CONTEXT.md](docs/CONTEXT.md), and
-[ARCHITECTURE.md](docs/ARCHITECTURE.md).
+```zsh
+zsh-git-good uninstall
+```
 
-### Evaluation and Reliability
+The command retains preferences and recovery data and prints the private
+helper's exact undo command, which works after the installed binary is removed.
+An already-open shell can unload its hooks with `zsh_git_good_unload`.
+`zsh-git-good uninstall --purge-local-data` explicitly removes product-owned
+local data and backups and therefore does not retain that recovery path.
 
-Run the versioned synthetic corpus or replay eligible local history through a
-temporary staged index:
+For a manual installation, remove its source line from `.zshrc`, unload or
+restart the shell, and run:
+
+```zsh
+sh scripts/uninstall.sh --prefix "$HOME/.local"
+# Optional: also remove the standard product-specific XDG data directories.
+sh scripts/uninstall.sh --prefix "$HOME/.local" --purge-local-data
+```
+
+The script does not guess custom `ZSH_GIT_GOOD_*` directories. Managed purge
+validates dedicated product paths and refuses ambiguous ownership. Repository
+policy files remain in their repositories. See [installation](docs/INSTALLATION.md)
+and the [lifecycle guide](docs/DOGFOOD-IMPLEMENTATION.md).
+
+### Snapshots and evaluation evidence
+
+Local snapshots cross-compile Linux/macOS `amd64` and `arm64` archives and
+produce checksums and an SPDX SBOM. Packaging includes the executable, plugin,
+README, changelog, and available license/notices files. The manual release
+preparation workflow generates reviewable archives and a Homebrew formula; it
+does not publish them.
+
+```zsh
+make release-snapshot VERSION=0.1.0-rc.1 DIST=dist/0.1.0-rc.1
+(cd dist/0.1.0-rc.1 && sha256sum -c checksums.txt)
+sh scripts/install-release.sh \
+  --archive dist/0.1.0-rc.1/zsh-git-good_0.1.0-rc.1_linux-amd64.tar.gz \
+  --prefix "$HOME/.local"
+```
+
+Verify an independently obtained archive against a reviewed checksum before
+installation. The archive installer restricts member names/types and stages
+files privately. Snapshots remain validation artifacts pending the license and
+release requirements described below.
+
+Evaluate the synthetic corpus or replay eligible local history:
 
 ```zsh
 zsh-git-good evaluate --fixtures --json
@@ -522,100 +592,77 @@ zsh-git-good evaluate --fixtures --partition held-out --json
 zsh-git-good evaluate --repo /absolute/path/to/repository --limit 50 --json
 ```
 
-Reports are private JSON and Markdown files under the XDG state directory by
-default. The evaluator does not replace foreground daemon, socket, or terminal
-validation, and local-history reports do not include raw replay diffs.
+The current synthetic corpus has 8 development and 19 held-out cases. Evaluation
+uses the actual background generation, grounding, ranking, cache-publication,
+and exact-lookup path, with separate socket and terminal tests. Reports are
+private JSON/Markdown under the XDG state directory and omit raw replay diffs.
+Automatic checks do not prove semantic usefulness or user preference. The
+project also provides a blinded human-comparison workflow; see
+[evaluation](docs/EVALUATION.md) and [reliability](docs/RELIABILITY.md).
 
-The project checks include:
+## 📚 Learn more
+
+| Topic | Documentation |
+| --- | --- |
+| Product scope and runtime design | [Product](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md) |
+| Installation, snapshots, and everyday administration | [Installation](docs/INSTALLATION.md), [setup/repair/removal](docs/DOGFOOD-IMPLEMENTATION.md) |
+| Preferences and message rules | [Configuration](docs/CONFIGURATION.md), [repository policy](docs/POLICY.md) |
+| Candidate evidence and generation | [Context](docs/CONTEXT.md), [grounding](docs/GROUNDING.md), [providers](docs/PROVIDERS.md) |
+| Optional data sources and permissions | [Cloud](docs/CLOUD.md), [activity](docs/ACTIVITY.md), [Neovim](docs/NEOVIM.md), [learning](docs/LEARNING.md) |
+| Commit bodies | [Compose](docs/COMPOSE.md) |
+| Security and validation boundaries | [Privacy](docs/PRIVACY.md), [threat model](docs/THREAT-MODEL.md), [evaluation](docs/EVALUATION.md), [reliability](docs/RELIABILITY.md) |
+| Release preparation and licensing | [Release checklist](docs/RELEASE-CHECKLIST.md), [license review](docs/LICENSE-REVIEW.md), [changelog](CHANGELOG.md), [third-party notices](THIRD_PARTY_NOTICES) |
+
+## 🌟 Contributing
+
+The repository contains a Go helper/daemon, the Zsh strategy plugin, and an
+optional Lua activity emitter. Preserve exact staged-state matching, bounded
+work, shell-safe output, explicit provider permissions, and user-controlled
+execution when changing these components.
+
+Run the relevant checks first, then the full suite before a broad change:
 
 ```zsh
 make build
-make test
-make lint
-make bench
+make test lint
+go test -race ./...
 make fuzz FUZZ_TIME=3s
-make test-soak
-make test-install
+make bench
 ```
 
-`make test` includes Go tests, real-Zsh integration, synthetic evaluation,
-installation lifecycle checks, installed-plugin dogfooding, and a bounded
-multi-shell soak. Neovim validation runs when available and reports an explicit
-skip otherwise. [RELIABILITY.md](docs/RELIABILITY.md) describes the covered
-scenarios and limitations; [EVALUATION.md](docs/EVALUATION.md) records the
-frozen local-model protocol and results.
-
-## Getting Updates
-
-There is no automatic updater. Inspect the desired source revision, rebuild it,
-and rerun the installer. It replaces only the installed executable and plugin;
-it does not touch `.zshrc`, configuration, cache, state, activity, learning
-profiles, or models.
+`make test` covers Go packages, Python packaging/qualification tests, setup,
+real-Zsh integration, synthetic evaluation, release installation, installed
+plugin dogfooding, a bounded multi-shell soak, and lifecycle rehearsals. Neovim
+runs when available and reports a skip otherwise. Point tests at an installed
+autosuggestions source when it is outside the default location:
 
 ```zsh
-cd /path/to/zsh-git-good
-git pull
-make build
-sh scripts/install.sh --source "$PWD" --prefix "$HOME/.local"
-zsh-git-good version --json
+export ZSH_AUTOSUGGESTIONS_SOURCE=/absolute/path/zsh-autosuggestions.zsh
+TERM=xterm-256color make test lint
 ```
 
-Use a reviewed archive only after independently verifying its checksum. The
-snapshot procedure and its verification boundary are in
-[INSTALLATION.md](docs/INSTALLATION.md).
+Useful narrower targets include `test-go`, `test-zsh`, `test-eval`,
+`test-reliability`, `test-nvim`, `test-install`, `test-dogfood`, `test-soak`, and
+`test-lifecycle`. `make lint` runs Go vet, formatting and shell syntax checks,
+and rejects `eval` or a `git` override in product paths. Run broad suites
+sequentially when checking timing-sensitive behavior.
 
-## Uninstalling zsh-git-good
+`make test-live-ollama` is explicitly opt-in. It needs a separately started
+loopback runtime and an already installed model named by
+`ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL`. Ordinary checks use local fixtures/mocks and
+require neither model downloads nor cloud generation. See
+[reliability](docs/RELIABILITY.md) for what each gate establishes.
 
-Remove the plugin `source` line from `.zshrc`. In a running shell, call
-`zsh_git_good_unload` before reloading Zsh. Then remove the installed product
-files and stop the installed daemon when possible:
+## License and release status
 
-```zsh
-sh scripts/uninstall.sh --prefix "$HOME/.local"
-```
+This repository contains an RC1-quality V1 implementation and local release
+preparation tooling. The deterministic provider is the validated default.
+Documented Ollama trials did not pass their local evaluation gate, and OpenAI
+has mock contract coverage only. Cross-compilation and local checks do not
+establish hosted CI success, public distribution, or live-provider usefulness.
 
-Configuration, cache, state, data, learning profiles, and runtime directories
-are retained by default. Make removal of the product-named standard XDG
-directories explicit:
-
-```zsh
-sh scripts/uninstall.sh --prefix "$HOME/.local" --purge-local-data
-```
-
-Custom `ZSH_GIT_GOOD_*` directory overrides are never guessed or removed.
-The retained cache may contain candidate metadata; delete it only if you no
-longer need it or have a backup. [INSTALLATION.md](docs/INSTALLATION.md)
-documents exact paths and behavior.
-
-## Contributing and Development
-
-The repository contains a Go daemon, a small Zsh strategy plugin, and an
-optional Neovim activity emitter. Start with these design documents before
-changing the interaction boundary:
-
-- [PRODUCT.md](docs/PRODUCT.md) defines product scope.
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) explains the strategy, fingerprint,
-  daemon, cache, IPC, provider, and grounding boundaries.
-- [THREAT-MODEL.md](docs/THREAT-MODEL.md) and [PRIVACY.md](docs/PRIVACY.md)
-  define privacy and security constraints.
-- [RELIABILITY.md](docs/RELIABILITY.md) records verification scope.
-
-Run the narrowest relevant check first, then broader checks. `make lint` runs
-Go vet, verifies Go formatting, syntax-checks Zsh and shell scripts, and rejects
-`eval` or a `git()` override in product paths. `make test-live-ollama` is
-deliberately opt-in: it needs a separately started loopback runtime and an
-already downloaded model named by `ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL`.
-
-## Project Status and License
-
-This is an RC1-quality V1 implementation with source installation, integration,
-evaluation, reliability, archive, checksum, and SBOM preparation in the
-repository. The deterministic provider is the verified default. The documented
-Ollama models did not pass the local evaluation gate, while OpenAI has mock
-contract coverage only.
-
-The repository has no `LICENSE` file and no license has been selected. Snapshot
-generation is useful for internal validation, but publishing or redistributing
-artifacts remains blocked until the maintainer adds a license. Read
-[LICENSE-REVIEW.md](docs/LICENSE-REVIEW.md) and [CHANGELOG.md](CHANGELOG.md)
-before treating a snapshot as a release.
+No project license has been selected, and the repository has no `LICENSE` file.
+Publishing or redistributing artifacts remains blocked until the maintainer
+adds one. Do not treat generated snapshots or a prepared formula as a published
+release. See [license review](docs/LICENSE-REVIEW.md),
+[third-party notices](THIRD_PARTY_NOTICES), and [changelog](CHANGELOG.md).

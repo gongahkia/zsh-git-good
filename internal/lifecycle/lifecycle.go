@@ -104,10 +104,10 @@ func (manager Manager) Load() (Manifest, error) {
 
 func artifactPaths(prefix string) map[string]os.FileMode {
 	return map[string]os.FileMode{
-		filepath.Join(prefix, "bin/zsh-git-good"):                            0o755,
+		filepath.Join(prefix, "bin/zsh-git-good"):                           0o755,
 		filepath.Join(prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh"): 0o644,
-		filepath.Join(prefix, "share/zsh-git-good/LICENSE"):                  0o644,
-		filepath.Join(prefix, "share/zsh-git-good/THIRD_PARTY_NOTICES"):      0o644,
+		filepath.Join(prefix, "share/zsh-git-good/LICENSE"):                 0o644,
+		filepath.Join(prefix, "share/zsh-git-good/THIRD_PARTY_NOTICES"):     0o644,
 	}
 }
 

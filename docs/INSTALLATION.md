@@ -93,10 +93,11 @@ make release-snapshot VERSION=0.1.0-rc.1 DIST=dist/0.1.0-rc.1
 The command cross-compiles four archives with `-trimpath`, disabled VCS
 embedding, a fixed linker build ID, and embedded version/commit values. It
 normalizes archive input timestamps, emits `checksums.txt`, and writes a
-deterministic SPDX 2.3 SBOM. The current Go module has no third-party modules;
-the SBOM therefore describes only this application and does not assert a
-license. The checked-in lifecycle test builds two snapshots from the same
-inputs and compares every archive and metadata file byte-for-byte on Fedora.
+deterministic SPDX 2.3 SBOM. The SBOM includes the application and its complete
+Go module graph, including the pinned MIT-licensed TOML parser; it does not
+assign a project license. The checked-in lifecycle test builds two snapshots
+from the same inputs and compares every archive and metadata file byte-for-byte
+on Fedora.
 
 Run the local release checks with:
 
@@ -107,8 +108,9 @@ make release-snapshot VERSION=0.1.0-rc.1 DIST=dist/0.1.0-rc.1
 ```
 
 After independently verifying the published checksum, a Linux archive can be
-installed without a source checkout. The installer accepts only the four
-expected member names, streams each into a private staging directory without
+installed without a source checkout. The installer accepts the four required
+product/documentation members and optional LICENSE/THIRD_PARTY_NOTICES files,
+streams each into a private staging directory without
 archive extraction, and atomically replaces the same two product files as the
 source installer; it does not modify configuration, cache, state, or
 managed-model data.
@@ -120,8 +122,10 @@ sh scripts/install-release.sh \
   --prefix "$HOME/.local"
 ```
 
-This archive flow was exercised locally with a Linux cross-compiled artifact.
-It is not evidence that a macOS binary has run on macOS.
+The original archive flow was exercised locally with a Linux artifact. The
+later macOS amd64 installation and runtime checks are recorded under
+[supported evidence](#supported-evidence); other cross-compiled targets still
+require their own runtime validation.
 
 The repository has no `LICENSE` file. Snapshot generation is useful for
 internal validation, but publishing or redistributing artifacts remains blocked

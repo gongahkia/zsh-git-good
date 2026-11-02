@@ -31,7 +31,14 @@ second="$root/release-two"
 for output in "$first" "$second"; do
   command sh "$project/scripts/release-snapshot.sh" --source "$project" --output "$output" --version test-0.1.0 --commit 0123456789abcdef
   [[ -r "$output/checksums.txt" && -r "$output/SBOM.spdx.json" ]] || { print -u2 -- 'release metadata is missing'; exit 1 }
-  (cd "$output" && command shasum -a 256 -c checksums.txt >/dev/null)
+  (
+    cd "$output"
+    if command -v shasum >/dev/null 2>&1; then
+      command shasum -a 256 -c checksums.txt >/dev/null
+    else
+      command sha256sum -c checksums.txt >/dev/null
+    fi
+  )
   [[ "$(command grep -c 'SPDX-2.3' "$output/SBOM.spdx.json")" == 1 ]] || { print -u2 -- 'release SBOM is malformed'; exit 1 }
   for target in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
     archive="$output/zsh-git-good_test-0.1.0_$target.tar.gz"
