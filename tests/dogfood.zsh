@@ -74,7 +74,9 @@ run_session
 run_session
 
 zmodload zsh/zpty || { print -u2 -- 'zsh/zpty is unavailable'; exit 1 }
-zpty -be dogfood-pty zsh -dfi
+# The rendering assertion below expects xterm's bright-black escape sequence.
+# CI may inherit TERM=dumb, which makes Zsh emit a different color sequence.
+zpty -be dogfood-pty env TERM=xterm-256color zsh -dfi
 
 pty_read_until() {
   local marker=$1 line attempts=0
