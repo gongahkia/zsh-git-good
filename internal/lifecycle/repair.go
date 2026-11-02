@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
 )
 
 // VerifyBlock checks the entire owned block without interpreting shell code.

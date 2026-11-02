@@ -8,7 +8,7 @@ and obtain legal advice where needed.
 
 The repository has no `LICENSE` file and no maintainer-selected project
 license. `go list -m all` at RC1 reports only
-`github.com/gongahkia/zsh-git-inlay`; there are no required third-party Go
+`github.com/gongahkia/zsh-git-good`; there are no required third-party Go
 modules. The snapshot SBOM accurately declares the application package but
 uses `NOASSERTION` for its license. Release snapshots contain only the Go
 executable, Zsh plugin, README, and changelog. They contain no model weights,

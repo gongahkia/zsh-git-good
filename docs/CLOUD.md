@@ -36,7 +36,7 @@ profiles. A missing key makes generation fail closed without an HTTP request.
 ## Grant and preview
 
 Grants are user-global, provider-specific records at
-`$XDG_DATA_HOME/zsh-git-inlay/cloud-grants.json` (or the private data-path
+`$XDG_DATA_HOME/zsh-git-good/cloud-grants.json` (or the private data-path
 override). The file is owner-only `0600` inside a private `0700` directory and
 has no repository identifier, source text, endpoint, or credential. Repository
 configuration has no grammar for these permissions.
@@ -46,10 +46,10 @@ mean adding a new class requires a fresh explicit consent command; one
 provider's grant cannot authorize another.
 
 ```zsh
-zsh-git-inlay cloud status --json
-zsh-git-inlay cloud preview --provider openai --cwd . --json
-zsh-git-inlay cloud grant openai --classes staged_diff,repository_context --confirm
-zsh-git-inlay cloud revoke openai
+zsh-git-good cloud status --json
+zsh-git-good cloud preview --provider openai --cwd . --json
+zsh-git-good cloud grant openai --classes staged_diff,repository_context --confirm
+zsh-git-good cloud revoke openai
 ```
 
 `preview` shows source categories, byte counts, truncation, and redaction

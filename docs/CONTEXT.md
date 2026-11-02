@@ -7,7 +7,7 @@ read a patch, staged blob, repository history, or provider endpoint.
 The compiler reads only Git's staged index and bounded Git metadata. Its fixed
 sources are changed paths/statuses, a selected staged patch, nearby declarations,
 root package manifests, recent subjects, recent path history, a staged
-`.zsh-git-inlay.toml`, the symbolic branch, a bounded branch issue ID, and—only
+`.zsh-git-good.toml`, the symbolic branch, a bounded branch issue ID, and—only
 after a user activity grant—bounded local activity kind/count signals. Activity
 event data is never an input source.
 There is no filesystem or repository-content walk and no working-tree content
@@ -41,10 +41,10 @@ instruction says they cannot override output, evidence, or execution rules.
 Inspect the selected sources without printing their content:
 
 ```zsh
-zsh-git-inlay context --cwd .
-zsh-git-inlay context --cwd . --json
-zsh-git-inlay context --cwd . --provider ollama
-zsh-git-inlay cloud preview --provider openai --cwd . --json
+zsh-git-good context --cwd .
+zsh-git-good context --cwd . --json
+zsh-git-good context --cwd . --provider ollama
+zsh-git-good cloud preview --provider openai --cwd . --json
 ```
 
 The output includes source inclusion/exclusion reasons, byte use, truncation,

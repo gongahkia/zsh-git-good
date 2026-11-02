@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/control"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/control"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
 )
 
 type doctorRepair struct {
@@ -80,7 +80,7 @@ func doctorFix(cwd string) ([]doctorRepair, error) {
 		failures = append(failures, err)
 	}
 	if root, err := doctorRepositoryRoot(cwd); err == nil {
-		if err := fixConfig(filepath.Join(root, ".zsh-git-inlay.toml"), true); err != nil {
+		if err := fixConfig(filepath.Join(root, ".zsh-git-good.toml"), true); err != nil {
 			failures = append(failures, err)
 		}
 	}

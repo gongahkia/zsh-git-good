@@ -2,7 +2,7 @@ AGENTS.md
 .build/
 /dist/
 /evaluation-private/
-*.zsh-git-inlay-evaluation.json
-*.zsh-git-inlay-evaluation.md
+*.zsh-git-good-evaluation.json
+*.zsh-git-good-evaluation.md
 
 __pycache__/

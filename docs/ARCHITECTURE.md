@@ -2,9 +2,9 @@
 
 ## Runtime path
 
-`zsh-git-inlay.plugin.zsh` is the only interactive component. After verifying that `zsh-autosuggestions` is already loaded, it prepends `git-inlay` to `ZSH_AUTOSUGGEST_STRATEGY`; yielding from that strategy lets the user's history and completion strategies continue normally. It does not define `git`, use `eval`, render text, scan a diff, generate candidates, or access a network.
+`zsh-git-good.plugin.zsh` is the only interactive component. After verifying that `zsh-autosuggestions` is already loaded, it prepends `git-good` to `ZSH_AUTOSUGGEST_STRATEGY`; yielding from that strategy lets the user's history and completion strategies continue normally. It does not define `git`, use `eval`, render text, scan a diff, generate candidates, or access a network.
 
-On `precmd`, the plugin starts `zsh-git-inlay daemon serve --observe "$PWD"` in the background when the daemon is absent. Startup is never awaited. The autosuggestion strategy is asynchronous on supported autosuggestions/Zsh versions. Its helper invocation parses a bounded buffer, obtains the current index-tree identity with Git plumbing, then performs a short bounded local Unix-socket lookup. A cache miss, daemon startup, stale state, no staged content, conflict, or unsupported command yields immediately. The helper never requests generation from this path.
+On `precmd`, the plugin starts `zsh-git-good daemon serve --observe "$PWD"` in the background when the daemon is absent. Startup is never awaited. The autosuggestion strategy is asynchronous on supported autosuggestions/Zsh versions. Its helper invocation parses a bounded buffer, obtains the current index-tree identity with Git plumbing, then performs a short bounded local Unix-socket lookup. A cache miss, daemon startup, stale state, no staged content, conflict, or unsupported command yields immediately. The helper never requests generation from this path.
 
 The cycle widget increments per-shell selection state and invokes autosuggestions' ordinary asynchronous fetch path with `--no-start`; it cannot launch a daemon or generate work. A `precmd` reset makes the first candidate primary after normal stage/unstage commands return to the prompt. Candidate selection is modulo the deterministic candidate count and wraps after the last candidate.
 
@@ -137,7 +137,7 @@ described in [CONTEXT.md](CONTEXT.md).
 
 The parser accepts only the stated canonical command forms, including `command git commit`, `-m`, `--message`, `-am`, flags before the message, repeated whitespace, and incomplete quote states. It rejects non-end cursors, `--amend`, `--fixup`, `--squash`, other Git commands, shell operators/substitutions, and completed message arguments. A candidate must extend the user prefix. Empty messages receive single quotes; open single or double quotes receive their matching closing quote; an unquoted typed prefix receives a shell-escaped continuation. Generated candidates are restricted to a conservative printable character set before this composition. When a typed prefix matches a later prepared candidate, selection reranks the existing matching subset in its original order; it has no daemon, context, generation, or questionnaire operation.
 
-`zsh-git-inlay compose` is outside the strategy path. It looks up one already
+`zsh-git-good compose` is outside the strategy path. It looks up one already
 prepared candidate by the current exact fingerprint: a normally grounded
 candidate, or one withheld solely because a required-body policy needs compose
 to complete it. The latter never reaches normal rendering. Compose creates an

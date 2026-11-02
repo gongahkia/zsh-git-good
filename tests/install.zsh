@@ -5,18 +5,18 @@ setopt errexit nounset pipefail
 
 [[ $# == 1 ]] || { print -u2 -- 'usage: tests/install.zsh <project-root>'; exit 2 }
 project=${1:A}
-[[ -x $project/.build/zsh-git-inlay ]] || { print -u2 -- 'build the project before running install tests'; exit 1 }
+[[ -x $project/.build/zsh-git-good ]] || { print -u2 -- 'build the project before running install tests'; exit 1 }
 
 root=$(mktemp -d)
 trap 'command rm -rf -- "$root"' EXIT
 prefix="$root/prefix with spaces"
 
 command sh "$project/scripts/install.sh" --source "$project" --prefix "$prefix"
-[[ -x "$prefix/bin/zsh-git-inlay" && -r "$prefix/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh" ]] || {
+[[ -x "$prefix/bin/zsh-git-good" && -r "$prefix/share/zsh-git-good/zsh-git-good.plugin.zsh" ]] || {
   print -u2 -- 'install did not create the expected files'
   exit 1
 }
-version=$(command "$prefix/bin/zsh-git-inlay" version --json)
+version=$(command "$prefix/bin/zsh-git-good" version --json)
 [[ $version == *'"version"'* && $version == *'"commit"'* ]] || { print -u2 -- 'installed binary lacks build metadata'; exit 1 }
 if command sh "$project/scripts/install.sh" --source "$project" --prefix / >/dev/null 2>&1; then
   print -u2 -- 'installer accepted the root prefix'
@@ -24,7 +24,7 @@ if command sh "$project/scripts/install.sh" --source "$project" --prefix / >/dev
 fi
 
 command sh "$project/scripts/install.sh" --source "$project" --prefix "$prefix"
-command cmp "$project/.build/zsh-git-inlay" "$prefix/bin/zsh-git-inlay"
+command cmp "$project/.build/zsh-git-good" "$prefix/bin/zsh-git-good"
 
 first="$root/release-one"
 second="$root/release-two"
@@ -34,11 +34,11 @@ for output in "$first" "$second"; do
   (cd "$output" && command shasum -a 256 -c checksums.txt >/dev/null)
   [[ "$(command grep -c 'SPDX-2.3' "$output/SBOM.spdx.json")" == 1 ]] || { print -u2 -- 'release SBOM is malformed'; exit 1 }
   for target in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
-    archive="$output/zsh-git-inlay_test-0.1.0_$target.tar.gz"
+    archive="$output/zsh-git-good_test-0.1.0_$target.tar.gz"
     [[ -f $archive ]] || { print -u2 -- "missing $target release archive"; exit 1 }
     members=("${(@f)$(command tar -tzf "$archive")}")
-    (( ${members[(Ie)zsh-git-inlay]} )) || { print -u2 -- "binary missing from $target archive"; exit 1 }
-    (( ${members[(Ie)zsh-git-inlay.plugin.zsh]} )) || { print -u2 -- "plugin missing from $target archive"; exit 1 }
+    (( ${members[(Ie)zsh-git-good]} )) || { print -u2 -- "binary missing from $target archive"; exit 1 }
+    (( ${members[(Ie)zsh-git-good.plugin.zsh]} )) || { print -u2 -- "plugin missing from $target archive"; exit 1 }
   done
 done
 for archive in "$first"/*.tar.gz; do
@@ -63,38 +63,38 @@ esac
 host_target="$host_os-$host_arch"
 extract="$root/extract"
 command mkdir "$extract"
-command tar -xzf "$first/zsh-git-inlay_test-0.1.0_${host_target}.tar.gz" -C "$extract"
-packaged_version=$(command "$extract/zsh-git-inlay" version --json)
+command tar -xzf "$first/zsh-git-good_test-0.1.0_${host_target}.tar.gz" -C "$extract"
+packaged_version=$(command "$extract/zsh-git-good" version --json)
 [[ $packaged_version == *'"version": "test-0.1.0"'* && $packaged_version == *'"commit": "0123456789abcdef"'* ]] || {
   print -u2 -- 'release binary lacks requested version metadata'
   exit 1
 }
 
 release_prefix="$root/release prefix"
-command sh "$project/scripts/install-release.sh" --archive "$first/zsh-git-inlay_test-0.1.0_${host_target}.tar.gz" --prefix "$release_prefix"
-[[ -x "$release_prefix/bin/zsh-git-inlay" && -r "$release_prefix/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh" ]] || {
+command sh "$project/scripts/install-release.sh" --archive "$first/zsh-git-good_test-0.1.0_${host_target}.tar.gz" --prefix "$release_prefix"
+[[ -x "$release_prefix/bin/zsh-git-good" && -r "$release_prefix/share/zsh-git-good/zsh-git-good.plugin.zsh" ]] || {
   print -u2 -- 'release archive install did not create expected files'
   exit 1
 }
-release_version=$(command "$release_prefix/bin/zsh-git-inlay" version --json)
+release_version=$(command "$release_prefix/bin/zsh-git-good" version --json)
 [[ $release_version == *'"version": "test-0.1.0"'* ]] || { print -u2 -- 'release archive install lost version metadata'; exit 1 }
 command sh "$project/scripts/uninstall.sh" --prefix "$release_prefix"
-[[ ! -e "$release_prefix/bin/zsh-git-inlay" ]] || { print -u2 -- 'release archive uninstall left binary'; exit 1 }
+[[ ! -e "$release_prefix/bin/zsh-git-good" ]] || { print -u2 -- 'release archive uninstall left binary'; exit 1 }
 
 malicious="$root/malicious"
 command mkdir "$malicious"
-command cp "$extract/zsh-git-inlay" "$extract/zsh-git-inlay.plugin.zsh" "$extract/README.md" "$extract/CHANGELOG.md" "$malicious/"
+command cp "$extract/zsh-git-good" "$extract/zsh-git-good.plugin.zsh" "$extract/README.md" "$extract/CHANGELOG.md" "$malicious/"
 print -r -- unexpected > "$malicious/unexpected"
 unexpected_archive="$root/unexpected-member.tar.gz"
-command tar -C "$malicious" -czf "$unexpected_archive" zsh-git-inlay zsh-git-inlay.plugin.zsh README.md CHANGELOG.md unexpected
+command tar -C "$malicious" -czf "$unexpected_archive" zsh-git-good zsh-git-good.plugin.zsh README.md CHANGELOG.md unexpected
 if command sh "$project/scripts/install-release.sh" --archive "$unexpected_archive" --prefix "$root/unexpected-prefix" >/dev/null 2>&1; then
   print -u2 -- 'release installer accepted an unexpected archive member'
   exit 1
 fi
-command rm "$malicious/zsh-git-inlay"
-command ln -s /etc/passwd "$malicious/zsh-git-inlay"
+command rm "$malicious/zsh-git-good"
+command ln -s /etc/passwd "$malicious/zsh-git-good"
 link_archive="$root/link-member.tar.gz"
-command tar -C "$malicious" -czf "$link_archive" zsh-git-inlay zsh-git-inlay.plugin.zsh README.md CHANGELOG.md
+command tar -C "$malicious" -czf "$link_archive" zsh-git-good zsh-git-good.plugin.zsh README.md CHANGELOG.md
 if command sh "$project/scripts/install-release.sh" --archive "$link_archive" --prefix "$root/link-prefix" >/dev/null 2>&1; then
   print -u2 -- 'release installer accepted a symlink binary member'
   exit 1
@@ -117,25 +117,25 @@ export XDG_DATA_HOME="$root/data"
 export XDG_CONFIG_HOME="$root/config"
 export XDG_RUNTIME_DIR="$root/runtime"
 for base in "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_RUNTIME_DIR"; do
-  command mkdir -p "$base/zsh-git-inlay"
+  command mkdir -p "$base/zsh-git-good"
   print -r -- keep > "$base/sentinel"
 done
-command mkdir -p "$XDG_DATA_HOME/zsh-git-inlay/managed"
-print -r -- model > "$XDG_DATA_HOME/zsh-git-inlay/managed/placeholder"
-print -r -- configuration > "$XDG_CONFIG_HOME/zsh-git-inlay/config.toml"
+command mkdir -p "$XDG_DATA_HOME/zsh-git-good/managed"
+print -r -- model > "$XDG_DATA_HOME/zsh-git-good/managed/placeholder"
+print -r -- configuration > "$XDG_CONFIG_HOME/zsh-git-good/config.toml"
 command sh "$project/scripts/uninstall.sh" --prefix "$prefix"
-[[ -r "$XDG_CONFIG_HOME/zsh-git-inlay/config.toml" && -r "$XDG_DATA_HOME/zsh-git-inlay/managed/placeholder" ]] || {
+[[ -r "$XDG_CONFIG_HOME/zsh-git-good/config.toml" && -r "$XDG_DATA_HOME/zsh-git-good/managed/placeholder" ]] || {
   print -u2 -- 'default uninstall removed retained local data'
   exit 1
 }
 command sh "$project/scripts/install.sh" --source "$project" --prefix "$prefix"
 command sh "$project/scripts/uninstall.sh" --prefix "$prefix" --purge-local-data
-[[ ! -e "$prefix/bin/zsh-git-inlay" && ! -e "$prefix/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh" ]] || {
+[[ ! -e "$prefix/bin/zsh-git-good" && ! -e "$prefix/share/zsh-git-good/zsh-git-good.plugin.zsh" ]] || {
   print -u2 -- 'uninstall left installed files'
   exit 1
 }
 for base in "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_RUNTIME_DIR"; do
-  [[ ! -e "$base/zsh-git-inlay" && -f "$base/sentinel" ]] || { print -u2 -- "purge escaped $base/zsh-git-inlay"; exit 1 }
+  [[ ! -e "$base/zsh-git-good" && -f "$base/sentinel" ]] || { print -u2 -- "purge escaped $base/zsh-git-good"; exit 1 }
 done
 
 print -- 'install and release snapshot: ok'

@@ -1,6 +1,6 @@
 # Privacy
 
-`zsh-git-inlay` has no telemetry, account system, cross-device sync, automatic
+`zsh-git-good` has no telemetry, account system, cross-device sync, automatic
 model download, automatic staging, or automatic commit. The normal Zsh lookup
 uses only the current exact Git staged-state identity and an owner-only local
 socket lookup; it does not compile context, invoke a model, or contact a
@@ -40,7 +40,7 @@ troubleshooting overrides are documented there and in the runtime diagnostics.
 
 ## Optional activity
 
-Activity is disabled unless the user runs `zsh-git-inlay permissions enable
+Activity is disabled unless the user runs `zsh-git-good permissions enable
 activity`. A repository policy cannot enable it. Granted collection retains
 only bounded, redacted, memory-only events for the configured TTL, scoped to
 the repository/worktree. Command arguments, environment, standard input,

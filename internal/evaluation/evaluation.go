@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/grounding"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/grounding"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
 )
 
 const (
@@ -165,7 +165,7 @@ func (generator *DaemonGenerator) Generate(ctx context.Context, cwd string) ([]c
 }
 
 func (generator *DaemonGenerator) GenerateDetailed(ctx context.Context, cwd string) (Generated, error) {
-	cache, err := os.MkdirTemp("", "zsh-git-inlay-evaluation-cache-")
+	cache, err := os.MkdirTemp("", "zsh-git-good-evaluation-cache-")
 	if err != nil {
 		return Generated{}, err
 	}
@@ -788,7 +788,7 @@ func validPath(value string) bool {
 }
 
 func fixtureRepository(ctx context.Context, fixture Fixture) (string, error) {
-	directory, err := os.MkdirTemp("", "zsh-git-inlay-evaluation-fixture-")
+	directory, err := os.MkdirTemp("", "zsh-git-good-evaluation-fixture-")
 	if err != nil {
 		return "", err
 	}
@@ -937,7 +937,7 @@ func historyFixture(ctx context.Context, repository string, commit historyCommit
 }
 
 func replayRepository(ctx context.Context, source, objects, parent, commit string) (string, error) {
-	directory, err := os.MkdirTemp("", "zsh-git-inlay-evaluation-history-")
+	directory, err := os.MkdirTemp("", "zsh-git-good-evaluation-history-")
 	if err != nil {
 		return "", err
 	}

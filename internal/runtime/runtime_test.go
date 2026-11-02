@@ -8,7 +8,7 @@ import (
 
 func TestEvaluationDirUsesPrivateStateOverride(t *testing.T) {
 	state := filepath.Join(t.TempDir(), "state")
-	t.Setenv("ZSH_GIT_INLAY_STATE_DIR", state)
+	t.Setenv("ZSH_GIT_GOOD_STATE_DIR", state)
 	directory, err := EvaluationDir()
 	if err != nil {
 		t.Fatal(err)
@@ -24,7 +24,7 @@ func TestEvaluationDirUsesPrivateStateOverride(t *testing.T) {
 
 func TestDataDirUsesPrivateOverride(t *testing.T) {
 	data := filepath.Join(t.TempDir(), "data")
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", data)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", data)
 	directory, err := DataDir()
 	if err != nil {
 		t.Fatal(err)
@@ -54,17 +54,17 @@ func TestPrivateDirectoryRejectsSymlinkBeforeChangingPermissions(t *testing.T) {
 
 func TestRuntimeInspectionUsesTheSameFallbackWithoutCreatingIt(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", "")
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", "")
 	t.Setenv("XDG_RUNTIME_DIR", filepath.Join(dir, "xdg"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
 	if err := os.Mkdir(filepath.Join(dir, "xdg"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "xdg/zsh-git-inlay"), []byte("unrelated file"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "xdg/zsh-git-good"), []byte("unrelated file"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	path, err := RuntimePath()
-	if err != nil || path != filepath.Join(dir, "cache/zsh-git-inlay/runtime") {
+	if err != nil || path != filepath.Join(dir, "cache/zsh-git-good/runtime") {
 		t.Fatalf("inspection did not choose fallback: %q %v", path, err)
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {

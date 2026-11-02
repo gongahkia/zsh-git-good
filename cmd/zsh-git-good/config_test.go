@@ -11,8 +11,8 @@ import (
 func TestConfigCLIRepairSetResetUndoAndLaterEditConflict(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
-	t.Setenv("ZSH_GIT_INLAY_STATE_DIR", filepath.Join(dir, "state"))
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_STATE_DIR", filepath.Join(dir, "state"))
 	original := "# personal\n[provider]\ntimeout = 'nonsense'\n[zsh]\ncycle_keybinding = '^X#' # keep\n"
 	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
 		t.Fatal(err)

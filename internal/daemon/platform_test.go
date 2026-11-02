@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/testenv"
+	"github.com/gongahkia/zsh-git-good/internal/testenv"
 )
 
 // Darwin's Unix socket path limit is 104 bytes. Go's long test names plus

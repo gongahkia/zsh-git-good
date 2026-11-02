@@ -8,10 +8,10 @@ import (
 	"sort"
 	"syscall"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 func uninstallCommand(arguments []string) error {
@@ -21,7 +21,7 @@ func uninstallCommand(arguments []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay uninstall [--purge-local-data] [--json]")
+		return errors.New("usage: zsh-git-good uninstall [--purge-local-data] [--json]")
 	}
 	manager, err := lifecycleManager()
 	if err != nil {
@@ -59,7 +59,7 @@ func uninstallCommand(arguments []string) error {
 	}
 	if manifestErr == nil {
 		// Remove empty owned directories only; unrelated prefix files survive.
-		for _, path := range []string{filepath.Join(manifest.Prefix, "share/zsh-git-inlay"), filepath.Join(manifest.Prefix, "share"), filepath.Join(manifest.Prefix, "bin")} {
+		for _, path := range []string{filepath.Join(manifest.Prefix, "share/zsh-git-good"), filepath.Join(manifest.Prefix, "share"), filepath.Join(manifest.Prefix, "bin")} {
 			_ = os.Remove(path)
 		}
 	}
@@ -88,7 +88,7 @@ func uninstallCommand(arguments []string) error {
 		return nil
 	}
 	fmt.Println("Removed installed integration. Preferences, feedback and backups are retained.")
-	fmt.Println("Run zsh_git_inlay_unload in the current shell, or open a new Zsh session, to remove its loaded hooks and bindings.")
+	fmt.Println("Run zsh_git_good_unload in the current shell, or open a new Zsh session, to remove its loaded hooks and bindings.")
 	if result.Journal.ID != "" {
 		fmt.Printf("Backup: %s\nUndo: %s undo %s\n", report["backup"], setup.Quote(recovery), result.Journal.ID)
 	}
@@ -104,7 +104,7 @@ func prepareRecoveryHelper(historyDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(filepath.Dir(historyDir), "recovery", "zsh-git-inlay")
+	path := filepath.Join(filepath.Dir(historyDir), "recovery", "zsh-git-good")
 	// A retained private executable makes undo usable after removal from PATH.
 	// It is removed together with backups by an explicit full purge.
 	if err := edit.UpdatePrivateMode(path, 0o700, func([]byte) ([]byte, error) { return source.Data, nil }); err != nil {
@@ -153,11 +153,11 @@ func localPurgePaths() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if filepath.Base(filepath.Dir(absolute)) == "zsh-git-inlay" {
+		if filepath.Base(filepath.Dir(absolute)) == "zsh-git-good" {
 			absolute = filepath.Dir(absolute)
 		}
-		if filepath.Base(absolute) != "zsh-git-inlay" {
-			return nil, fmt.Errorf("refusing recursive purge of custom path %s; use a dedicated directory named zsh-git-inlay or remove its owned files explicitly", absolute)
+		if filepath.Base(absolute) != "zsh-git-good" {
+			return nil, fmt.Errorf("refusing recursive purge of custom path %s; use a dedicated directory named zsh-git-good or remove its owned files explicitly", absolute)
 		}
 		info, err := os.Lstat(absolute)
 		if err == nil {

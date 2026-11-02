@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/command"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/command"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
 )
 
 func repositoryDiagnostic(cwd, buffer string) daemon.Diagnostic {

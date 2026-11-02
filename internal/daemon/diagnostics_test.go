@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 func TestDiagnosticsDistinguishUnpreparedFailedAndPolicyStates(t *testing.T) {

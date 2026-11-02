@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
 )
 
 func TestBlindedReviewUnblindsOnlyExplicitValidatedRatings(t *testing.T) {

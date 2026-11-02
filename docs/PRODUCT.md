@@ -2,7 +2,7 @@
 
 ## Implemented V1
 
-`zsh-git-inlay` is one Zsh product. Its ordinary user interaction is unchanged Git syntax: type `git commit -m ` and let the required `zsh-autosuggestions` renderer show one prepared candidate. The user may accept with their ordinary autosuggestion binding, keep typing to constrain it, dismiss it, or press the configurable cycle binding to choose another already prepared candidate. There is no `git inlay` subcommand, Git wrapper, separate daemon product, editor frontend, menu, spinner, or TUI.
+`zsh-git-good` is one Zsh product. Its ordinary user interaction is unchanged Git syntax: type `git commit -m ` and let the required `zsh-autosuggestions` renderer show one prepared candidate. The user may accept with their ordinary autosuggestion binding, keep typing to constrain it, dismiss it, or press the configurable cycle binding to choose another already prepared candidate. There is no `git good` subcommand, Git wrapper, separate daemon product, editor frontend, menu, spinner, or TUI.
 
 The Go executable's `doctor`, `status`, `fingerprint`, `context`, `candidates`,
 `observe`, `evaluate`, `permissions`, `cloud`, `activity`, `learning`, and `daemon` commands are
@@ -61,7 +61,7 @@ The following are implemented or settled product decisions:
 - Neovim is the sole V1 editor-context adapter. It is an opt-in event producer,
   never a suggestion frontend or independent inference caller; it emits bounded
   file and diagnostic-count transitions only.
-- Optional commit bodies use `zsh-git-inlay compose`, a user-invoked secondary
+- Optional commit bodies use `zsh-git-good compose`, a user-invoked secondary
   flow. It starts from an exact-fingerprint candidate that passed all
   subject/evidence checks; one withheld solely for a required-body policy is
   never rendered as ghost text. Compose proposes only staged path/status facts,

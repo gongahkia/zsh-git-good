@@ -46,7 +46,7 @@ observing it; automated pseudo-terminal output does not substitute for this.
 5. Restart or stop the daemon, use two shells in one repository, then two
    repositories and a linked worktree. Confirm no stale or cross-scope text.
 6. Confirm normal history autosuggestions remain available after the
-   `git-inlay` strategy, unload the plugin, and confirm the original behavior
+   `git-good` strategy, unload the plugin, and confirm the original behavior
    returns.
 7. Check theme contrast, terminal width/wrapping, configured keymaps, and the
    perceived usefulness/conservatism of suggestions. Record terminal, Zsh, and
@@ -108,7 +108,7 @@ make test-install
 make fuzz FUZZ_TIME=3s
 make release-snapshot VERSION=verification-rc1 DIST=.build/release-rc1
 git diff --check
-go run ./cmd/zsh-git-inlay doctor --json
+go run ./cmd/zsh-git-good doctor --json
 ```
 
 Inspect the snapshot's archive members, SHA-256 checksums, SPDX SBOM, version

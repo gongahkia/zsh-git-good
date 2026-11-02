@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
 )
 
 var declaration = regexp.MustCompile(`^(?:func\s+(?:\([^)]*\)\s+)?|(?:export\s+)?(?:async\s+)?(?:function|class|def)\s+|(?:pub\s+)?(?:async\s+)?fn\s+)([A-Za-z_][A-Za-z0-9_]*)`)

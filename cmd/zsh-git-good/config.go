@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/lifecycle"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/lifecycle"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
 )
 
 func editStore() (edit.Store, error) {
@@ -22,7 +22,7 @@ func editStore() (edit.Store, error) {
 }
 
 func configurationCommand(arguments []string) error {
-	usage := errors.New("usage: zsh-git-inlay config {show|validate|set <key> <value>|reset <key>|repair} [--json] [--repo] [--cwd <repository>]")
+	usage := errors.New("usage: zsh-git-good config {show|validate|set <key> <value>|reset <key>|repair} [--json] [--repo] [--cwd <repository>]")
 	if len(arguments) == 0 {
 		return usage
 	}
@@ -67,7 +67,7 @@ func configurationCommand(arguments []string) error {
 		if err != nil {
 			return fmt.Errorf("find repository for config --repo: %w", err)
 		}
-		path = filepath.Join(strings.TrimSpace(string(root)), ".zsh-git-inlay.toml")
+		path = filepath.Join(strings.TrimSpace(string(root)), ".zsh-git-good.toml")
 	}
 	snapshot, err := edit.Read(path)
 	if err != nil {
@@ -142,7 +142,7 @@ func configurationCommand(arguments []string) error {
 	if *jsonOutput {
 		return printJSON(map[string]any{"changed": true, "path": path, "transaction": journal.ID, "backup": backup, "repairs": repairs})
 	}
-	fmt.Printf("Updated %s\nBackup: %s\nUndo: zsh-git-inlay undo %s\n", path, backup, journal.ID)
+	fmt.Printf("Updated %s\nBackup: %s\nUndo: zsh-git-good undo %s\n", path, backup, journal.ID)
 	for _, diagnostic := range repairs {
 		fmt.Println("Repaired:", diagnostic.Error())
 	}
@@ -151,7 +151,7 @@ func configurationCommand(arguments []string) error {
 
 func undoCommand(arguments []string) error {
 	if len(arguments) != 1 {
-		return errors.New("usage: zsh-git-inlay undo {list|<transaction-id>}")
+		return errors.New("usage: zsh-git-good undo {list|<transaction-id>}")
 	}
 	store, err := editStore()
 	if err != nil {

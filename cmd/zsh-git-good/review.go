@@ -9,7 +9,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/evaluation"
+	"github.com/gongahkia/zsh-git-good/internal/evaluation"
 )
 
 func readReviewJSON(path string, value any) error {
@@ -38,7 +38,7 @@ func readReviewJSON(path string, value any) error {
 
 func reviewCommand(arguments []string) error {
 	if len(arguments) == 0 {
-		return errors.New("usage: zsh-git-inlay review {prepare|summarize}")
+		return errors.New("usage: zsh-git-good review {prepare|summarize}")
 	}
 	flags := flag.NewFlagSet("review", flag.ContinueOnError)
 	flags.SetOutput(ioDiscard{})

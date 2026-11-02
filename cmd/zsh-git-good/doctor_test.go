@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/control"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/control"
 )
 
 func TestDoctorInspectionDoesNotCreateRuntimeOrHistory(t *testing.T) {
@@ -20,7 +20,7 @@ func TestDoctorInspectionDoesNotCreateRuntimeOrHistory(t *testing.T) {
 	if err := json.Unmarshal([]byte(output), &report); err != nil || len(report.Checks) == 0 {
 		t.Fatalf("missing structured checks: %s %v", output, err)
 	}
-	for _, key := range []string{"ZSH_GIT_INLAY_RUNTIME_DIR", "ZSH_GIT_INLAY_DATA_DIR", "ZSH_GIT_INLAY_STATE_DIR", "ZSH_GIT_INLAY_CACHE_DIR"} {
+	for _, key := range []string{"ZSH_GIT_GOOD_RUNTIME_DIR", "ZSH_GIT_GOOD_DATA_DIR", "ZSH_GIT_GOOD_STATE_DIR", "ZSH_GIT_GOOD_CACHE_DIR"} {
 		if _, err := os.Lstat(os.Getenv(key)); !os.IsNotExist(err) {
 			t.Fatalf("read-only doctor created %s: %v", key, err)
 		}
@@ -56,7 +56,7 @@ func TestDoctorFixPreservesValidPreferencesAndRequiresExplicitReenableAfterCorru
 	if err := os.WriteFile(controlsPath, []byte("broken control JSON"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	plugin := filepath.Join(dir, "prefix with spaces/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")
+	plugin := filepath.Join(dir, "prefix with spaces/share/zsh-git-good/zsh-git-good.plugin.zsh")
 	if err := os.WriteFile(plugin, []byte("# broken plugin\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestDoctorFixPreservesValidPreferencesAndRequiresExplicitReenableAfterCorru
 			}
 		}
 	}
-	if _, err := os.Stat(filepath.Join(os.Getenv("ZSH_GIT_INLAY_DATA_DIR"), "cloud-grants.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(os.Getenv("ZSH_GIT_GOOD_DATA_DIR"), "cloud-grants.json")); !os.IsNotExist(err) {
 		t.Fatal("doctor created an implicit cloud grant")
 	}
 }

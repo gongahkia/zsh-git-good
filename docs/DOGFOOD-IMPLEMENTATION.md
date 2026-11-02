@@ -149,16 +149,16 @@ rehearsals above used disposable homes only.
 
 ```sh
 make build
-.build/zsh-git-inlay setup --wizard
+.build/zsh-git-good setup --wizard
 ```
 
 Review the wizard's paths/preferences and apply. Open a new Zsh session, then
 run these from a repository with staged changes:
 
 ```sh
-zsh-git-inlay doctor --check
-zsh-git-inlay observe --cwd .
-zsh-git-inlay status --cwd .
+zsh-git-good doctor --check
+zsh-git-good observe --cwd .
+zsh-git-good status --cwd .
 ```
 
 Type `git commit -m ` and use your usual autosuggestion acceptance binding.
@@ -171,18 +171,18 @@ Use `setup --wizard` and choose customize for the guided preferences flow, or
 make a validated batch directly:
 
 ```sh
-zsh-git-inlay setup customize \
+zsh-git-good setup customize \
   --set commit.capitalization=sentence \
   --set commit.line_length=72 \
   --set suggestions.candidate_count=2
-zsh-git-inlay config show
-zsh-git-inlay feedback useful --candidate 1 --cwd .
-zsh-git-inlay feedback too-generic --candidate 2 --cwd .
-zsh-git-inlay feedback show --cwd .
-zsh-git-inlay disable --repo --cwd .
-zsh-git-inlay enable --repo --cwd .
-zsh-git-inlay snooze 30m --repo --cwd .
-zsh-git-inlay enable --repo --cwd .
+zsh-git-good config show
+zsh-git-good feedback useful --candidate 1 --cwd .
+zsh-git-good feedback too-generic --candidate 2 --cwd .
+zsh-git-good feedback show --cwd .
+zsh-git-good disable --repo --cwd .
+zsh-git-good enable --repo --cwd .
+zsh-git-good snooze 30m --repo --cwd .
+zsh-git-good enable --repo --cwd .
 ```
 
 Feedback labels the currently prepared candidate and retains only scoped hashes
@@ -191,15 +191,15 @@ learning has an independent `learning.enabled` preference. Config/keymap changes
 take effect in new shells; preparation sees generation preferences on observe.
 
 ```sh
-zsh-git-inlay doctor --fix
-zsh-git-inlay undo list
-zsh-git-inlay undo <printed-transaction-id>
-zsh-git-inlay uninstall
+zsh-git-good doctor --fix
+zsh-git-good undo list
+zsh-git-good undo <printed-transaction-id>
+zsh-git-good uninstall
 ```
 
 Removal prints the retained private helper's exact undo command, so recovery
 works after removing the installed executable from PATH. Run
-`zsh_git_inlay_unload` in an already-open shell, or start a new one, to unload
+`zsh_git_good_unload` in an already-open shell, or start a new one, to unload
 its in-memory hooks/bindings. Default removal retains preferences and feedback.
 `uninstall --purge-local-data` explicitly deletes product-owned local data and
 backups; it validates dedicated product directories before recursive deletion.

@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/activity"
-	"github.com/gongahkia/zsh-git-inlay/internal/cloud"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/activity"
+	"github.com/gongahkia/zsh-git-good/internal/cloud"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
 )
 
 const (
@@ -275,7 +275,7 @@ func CompileWithActivity(ctx context.Context, cwd string, state gitstate.State, 
 		compiler.add("path_history", budget.PathHistory, string(history), "recent subjects touching selected staged paths", historyTruncated)
 	}
 
-	convention, conventionTruncated, conventionErr := stagedBlob(ctx, cwd, ".zsh-git-inlay.toml", budget.Convention)
+	convention, conventionTruncated, conventionErr := stagedBlob(ctx, cwd, ".zsh-git-good.toml", budget.Convention)
 	if conventionErr != nil || len(convention) == 0 {
 		compiler.exclude("repository_convention", budget.Convention, "no staged repository convention file")
 	} else {

@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/lifecycle"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/lifecycle"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 type preferenceFlags map[string]string
@@ -159,11 +159,11 @@ func setupAdmin(operation string, arguments []string, input io.Reader, output io
 		if err != nil {
 			return err
 		}
-		binary = filepath.Join(root, ".build/zsh-git-inlay")
+		binary = filepath.Join(root, ".build/zsh-git-good")
 		if _, err := os.Stat(binary); err != nil {
-			binary = filepath.Join(root, "zsh-git-inlay")
+			binary = filepath.Join(root, "zsh-git-good")
 		}
-		plugin = filepath.Join(root, "zsh-git-inlay.plugin.zsh")
+		plugin = filepath.Join(root, "zsh-git-good.plugin.zsh")
 	}
 	if *dependency == "" {
 		*dependency = discovered.Autosuggestions
@@ -212,7 +212,7 @@ func setupAdmin(operation string, arguments []string, input io.Reader, output io
 	}
 	if plugin == "" {
 		if recordedRepair {
-			plugin = filepath.Join(previous.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")
+			plugin = filepath.Join(previous.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")
 		} else {
 			return errors.New("plugin source unavailable; pass --source <built-checkout-or-extracted-release>")
 		}
@@ -257,10 +257,10 @@ func setupAdmin(operation string, arguments []string, input io.Reader, output io
 				postErrors = append(postErrors, err)
 				continue
 			}
-			if !probe.Loaded || !probe.DependencyLoaded || probe.PluginContract != setup.PluginContract || len(probe.Strategies) == 0 || probe.Strategies[0] != "git-inlay" || !probe.Async {
+			if !probe.Loaded || !probe.DependencyLoaded || probe.PluginContract != setup.PluginContract || len(probe.Strategies) == 0 || probe.Strategies[0] != "git-good" || !probe.Async {
 				postErrors = append(postErrors, fmt.Errorf("interactive shell (login=%t) did not activate the expected plugin, dependency, async mode and first strategy; run doctor --check", login))
 			}
-			if !sameFilePath(probe.Binary, filepath.Join(*prefix, "bin/zsh-git-inlay")) || !sameFilePath(probe.PluginSource, filepath.Join(*prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")) {
+			if !sameFilePath(probe.Binary, filepath.Join(*prefix, "bin/zsh-git-good")) || !sameFilePath(probe.PluginSource, filepath.Join(*prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")) {
 				postErrors = append(postErrors, fmt.Errorf("interactive shell (login=%t) loaded a different helper or plugin; inspect doctor --check", login))
 			}
 		}
@@ -290,7 +290,7 @@ func printSetupChange(output io.Writer, asJSON bool, journal edit.Journal, direc
 		fmt.Fprintln(output, "Setup already matches.")
 		return nil
 	}
-	fmt.Fprintf(output, "Updated setup.\nBackup: %s\nUndo: zsh-git-inlay undo %s\n", report["backup"], journal.ID)
+	fmt.Fprintf(output, "Updated setup.\nBackup: %s\nUndo: zsh-git-good undo %s\n", report["backup"], journal.ID)
 	return nil
 }
 

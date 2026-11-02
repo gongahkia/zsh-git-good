@@ -1,4 +1,4 @@
-module github.com/gongahkia/zsh-git-inlay
+module github.com/gongahkia/zsh-git-good
 
 go 1.26
 

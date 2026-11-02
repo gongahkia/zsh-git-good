@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/grounding"
-	"github.com/gongahkia/zsh-git-inlay/internal/learning"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/grounding"
+	"github.com/gongahkia/zsh-git-good/internal/learning"
 )
 
 func TestPreferencesReachGroundedPublishedCandidates(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	if err := os.WriteFile(path, []byte("[commit]\ncapitalization = 'sentence'\nline_length = 40\nscope_mode = 'none'\n[suggestions]\ncandidate_count = 1\n[learning]\nenabled = false\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestGlobalLearningDisablePreventsObservationAndReordering(t *testing.T) {
 
 func TestEvaluationUsesExplicitMessageDefaultsRatherThanAmbientDogfoodingPreferences(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	if err := os.WriteFile(path, []byte("[commit]\ncapitalization = 'sentence'\nscope_mode = 'none'\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

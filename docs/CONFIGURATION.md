@@ -1,8 +1,8 @@
 # Configuration
 
 Global user settings live at
-`$XDG_CONFIG_HOME/zsh-git-inlay/config.toml` (defaulting to
-`~/.config/zsh-git-inlay/config.toml`). `ZSH_GIT_INLAY_CONFIG` is a test and
+`$XDG_CONFIG_HOME/zsh-git-good/config.toml` (defaulting to
+`~/.config/zsh-git-good/config.toml`). `ZSH_GIT_GOOD_CONFIG` is a test and
 troubleshooting override. Unknown keys and malformed values fail loading;
 configuration is parsed as data and never executed.
 
@@ -46,13 +46,13 @@ verbose = false
 
 Changing valid global provider/context-relevant settings changes the exact
 candidate identity; a candidate prepared under the old settings cannot serve
-the new state. `zsh-git-inlay doctor --json` reports runtime and dependency
-diagnostics without printing staged source content. `zsh-git-inlay config
+the new state. `zsh-git-good doctor --json` reports runtime and dependency
+diagnostics without printing staged source content. `zsh-git-good config
 cycle-keybinding` prints the configured cycle binding.
 
 ## Repository message policy
 
-A repository may contain `.zsh-git-inlay.toml` with only the declarative
+A repository may contain `.zsh-git-good.toml` with only the declarative
 `[commit]` keys documented in [POLICY.md](POLICY.md): convention, type/scope
 allowlists, path-to-scope mappings, line length, capitalization, and body
 preference. It is part of the exact fingerprint and is strict—unknown or
@@ -81,7 +81,7 @@ protocol and approval boundary in [EXECPLAN-LIVE-MODEL.md](EXECPLAN-LIVE-MODEL.m
 
 Cycling binds both `emacs` and `viins` by default. Set
 `[zsh] cycle_keymaps = ["viins"]` (or include `vicmd`) to choose keymaps;
-`ZSH_GIT_INLAY_CYCLE_KEYMAPS=(viins)` before sourcing overrides the setting.
+`ZSH_GIT_GOOD_CYCLE_KEYMAPS=(viins)` before sourcing overrides the setting.
 Unloading restores each original binding. Re-sourcing is idempotent.
 
 Use `status --cwd /path/to/worktree --json` for a repository-specific quiet-state

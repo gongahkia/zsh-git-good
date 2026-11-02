@@ -34,7 +34,7 @@ messages are not descriptive, but cosmetic history rewrites are out of scope.
 | `zsh-autosuggestions` | local source found and real-Zsh integration passed |
 | Prototype test/lint | `make test` and `make lint` passed |
 | Prototype benchmark | `make bench` passed; snapshot 5.38 ms/op, deterministic generation 1.21 ms/op, warm socket lookup 0.059 ms/op in this audit run |
-| Doctor | `go run ./cmd/zsh-git-inlay doctor --json` found Git, Zsh and autosuggestions; daemon was absent as expected |
+| Doctor | `go run ./cmd/zsh-git-good doctor --json` found Git, Zsh and autosuggestions; daemon was absent as expected |
 
 ### Baseline gaps and risks
 
@@ -257,7 +257,7 @@ must remain off the lookup path.
   text exclusion, module loading, failure containment, and disable cleanup.
   The existing CLI/daemon consent tests cover the emitter's early default-deny
   gate before Git-state resolution. `go test -race ./internal/activity
-  ./internal/ipc ./internal/daemon ./cmd/zsh-git-inlay`, `make test`, and
+  ./internal/ipc ./internal/daemon ./cmd/zsh-git-good`, `make test`, and
   `make lint` passed. Benchmark results were parser 0.302 us/op, exact snapshot
   8.72 ms/op, deterministic generation 1.53 ms/op, and warm socket lookup
   0.103 ms/op, within the 1 ms/25 ms/0.25 ms budgets. Doctor found no daemon or
@@ -338,7 +338,7 @@ must remain off the lookup path.
   rejection, safe editor parsing, no-commit, staged-state change, and
   required-body behavior. `go test -race
   ./internal/command ./internal/grounding ./internal/daemon
-  ./internal/compose ./cmd/zsh-git-inlay`, `make test`, and `make lint` passed;
+  ./internal/compose ./cmd/zsh-git-good`, `make test`, and `make lint` passed;
   the full test target also passed real-Zsh integration, daemon recovery, and
   evaluation integration. The final benchmark recorded parser 0.210 µs/op,
   exact snapshot 6.08 ms/op, deterministic generation 1.10 ms/op, and warm
@@ -360,7 +360,7 @@ must remain off the lookup path.
   purge boundaries, release-output refusal, checksums, all four archives,
   embedded packaged metadata, and byte-identical dual snapshots. It now runs
   under `make test`; lint checks all added shell files. `go test -race
-  ./cmd/zsh-git-inlay`, `make test`, `make lint`, `make test-install`, and a
+  ./cmd/zsh-git-good`, `make test`, `make lint`, `make test-install`, and a
   direct `make release-snapshot` passed on Fedora. A `git archive` source build
   with Git discovery capped at the extracted tree also passed; it reports the
   deliberate `commit: unknown` fallback when no repository metadata exists.

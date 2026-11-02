@@ -3,7 +3,7 @@ package command
 import (
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
 )
 
 var testCandidates = []candidate.Candidate{{Message: "fix(cache): invalidate stale entries", Rank: 0}, {Message: "chore(cache): refresh staged changes", Rank: 1}, {Message: "test(cache): update test coverage", Rank: 2}}

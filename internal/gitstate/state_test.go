@@ -92,7 +92,7 @@ func TestSnapshotIncludesProviderConfiguration(t *testing.T) {
 	write(t, repository, "file.txt", "staged\n")
 	gitRun(t, repository, "add", "file.txt")
 	configRoot := t.TempDir()
-	path := filepath.Join(configRoot, "zsh-git-inlay", "config.toml")
+	path := filepath.Join(configRoot, "zsh-git-good", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}

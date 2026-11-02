@@ -58,7 +58,7 @@ func Discover(binary string) Installation {
 		binaryPath = binary
 	}
 	root := filepath.Dir(filepath.Dir(binaryPath))
-	for _, candidate := range []string{filepath.Join(root, "share", "zsh-git-inlay", "zsh-git-inlay.plugin.zsh"), filepath.Join(filepath.Dir(binaryPath), "zsh-git-inlay.plugin.zsh"), filepath.Join(root, "zsh-git-inlay.plugin.zsh")} {
+	for _, candidate := range []string{filepath.Join(root, "share", "zsh-git-good", "zsh-git-good.plugin.zsh"), filepath.Join(filepath.Dir(binaryPath), "zsh-git-good.plugin.zsh"), filepath.Join(root, "zsh-git-good.plugin.zsh")} {
 		if readable(candidate) {
 			result.Plugin = candidate
 			break
@@ -79,10 +79,10 @@ func Check(ctx context.Context, installation Installation) error {
 path=("${1:h}" $path)
 source "$2"
 source "$3"
-(( ${+functions[_zsh_autosuggest_strategy_git-inlay]} ))
-[[ ${ZSH_AUTOSUGGEST_STRATEGY[1]} == git-inlay ]]
+(( ${+functions[_zsh_autosuggest_strategy_git-good]} ))
+[[ ${ZSH_AUTOSUGGEST_STRATEGY[1]} == git-good ]]
 command "$1" version --json >/dev/null
-zsh_git_inlay_unload`
+zsh_git_good_unload`
 	if output, diagnostics, err := runShell(ctx, nil, "-dfc", script, "zsh", installation.Binary, installation.Autosuggestions, installation.Plugin); err != nil {
 		return fmt.Errorf("installation check failed: %s %s: %w", strings.TrimSpace(string(output)), diagnostics, err)
 	}
@@ -94,13 +94,13 @@ func Quote(value string) string { return "'" + strings.ReplaceAll(value, "'", "'
 // Demo exercises the installed daemon/socket/lookup path in a disposable repo
 // and private deterministic configuration. It never commits or uses a model.
 func Demo(ctx context.Context, binary string) (string, error) {
-	root, err := os.MkdirTemp("/tmp", "zgi-demo-")
+	root, err := os.MkdirTemp("/tmp", "zgg-demo-")
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(root)
 	environment := os.Environ()
-	for key, value := range map[string]string{"ZSH_GIT_INLAY_RUNTIME_DIR": filepath.Join(root, "run"), "ZSH_GIT_INLAY_CACHE_DIR": filepath.Join(root, "cache"), "ZSH_GIT_INLAY_DATA_DIR": filepath.Join(root, "data"), "ZSH_GIT_INLAY_CONFIG": filepath.Join(root, "config.toml")} {
+	for key, value := range map[string]string{"ZSH_GIT_GOOD_RUNTIME_DIR": filepath.Join(root, "run"), "ZSH_GIT_GOOD_CACHE_DIR": filepath.Join(root, "cache"), "ZSH_GIT_GOOD_DATA_DIR": filepath.Join(root, "data"), "ZSH_GIT_GOOD_CONFIG": filepath.Join(root, "config.toml")} {
 		prefix := key + "="
 		filtered := environment[:0]
 		for _, entry := range environment {

@@ -55,7 +55,7 @@ budgets; shared-host variation remains an explicit limitation.
 
 | Invariant | Code and test evidence |
 | --- | --- |
-| No global `git()` override or `eval` | `zsh-git-inlay.plugin.zsh` is a strategy provider; `make lint` rejects both patterns and `tests/integration.zsh` asserts no `git` function. |
+| No global `git()` override or `eval` | `zsh-git-good.plugin.zsh` is a strategy provider; `make lint` rejects both patterns and `tests/integration.zsh` asserts no `git` function. |
 | ZLE does not generate, scan, access a network, or wait for daemon startup | The strategy calls only `suggest`; `precmd` backgrounds `observe` with `&!`. `suggest` does the bounded current-fingerprint/socket lookup, while `daemon.generate` owns context compilation/provider calls. Integration/dogfood tests require a prepared candidate and no stale render. |
 | Candidates are exact-fingerprint-bound and stale ones cannot render | `gitstate.Snapshot` includes repository/worktree, HEAD, index, configuration, and context identities; `TestSnapshotTracksExactStagedState`, `TestSupersededStateCannotPublish`, and Zsh integration cover index change/rejection. |
 | Repository and linked-worktree isolation holds | Records retain repository/worktree IDs and `lookup` checks both; `TestSnapshotIsolatesRepositoriesAndLinkedWorktrees` and `TestObservePublishesAtomicScopedCandidates` cover collisions and cross-scope lookup. |

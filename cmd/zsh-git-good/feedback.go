@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/feedback"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/feedback"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
 )
 
 func feedbackCommand(arguments []string) error {
-	usage := errors.New("usage: zsh-git-inlay feedback {useful|too-generic|incorrect|show|clear} [--candidate 1..3] [--cwd directory] [--json]")
+	usage := errors.New("usage: zsh-git-good feedback {useful|too-generic|incorrect|show|clear} [--candidate 1..3] [--cwd directory] [--json]")
 	if len(arguments) == 0 {
 		return usage
 	}

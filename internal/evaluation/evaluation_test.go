@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/grounding"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/grounding"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
 )
 
 func TestSyntheticCorpusEvaluatesDeterministically(t *testing.T) {
@@ -138,7 +138,7 @@ func TestPrivateReportsOmitDiffsAndUsePrivatePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, pattern := range []string{"/evaluation-private/", "*.zsh-git-inlay-evaluation.json", "*.zsh-git-inlay-evaluation.md"} {
+	for _, pattern := range []string{"/evaluation-private/", "*.zsh-git-good-evaluation.json", "*.zsh-git-good-evaluation.md"} {
 		if !strings.Contains(string(ignore), pattern) {
 			t.Fatalf(".gitignore does not exclude private evaluation pattern %q", pattern)
 		}

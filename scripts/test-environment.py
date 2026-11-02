@@ -24,9 +24,9 @@ def main():
     compiler = json.loads(subprocess.check_output(["go", "env", "-json", "GOCACHE", "GOMODCACHE"], text=True, timeout=10))
     environment.update(compiler)
     for key in list(environment):
-        if key.startswith(("ZSH_GIT_INLAY_", "GIT_")) or key in ("ZDOTDIR", "OPENAI_API_KEY"):
+        if key.startswith(("ZSH_GIT_GOOD_", "GIT_")) or key in ("ZDOTDIR", "OPENAI_API_KEY"):
             del environment[key]
-    with tempfile.TemporaryDirectory(prefix="zgi-suite-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="zgg-suite-", dir="/tmp") as directory:
         root = Path(directory)
         for key, name in {"HOME": "home", "XDG_CONFIG_HOME": "config", "XDG_DATA_HOME": "data", "XDG_CACHE_HOME": "cache", "XDG_STATE_HOME": "state", "XDG_RUNTIME_DIR": "runtime"}.items():
             path = root / name

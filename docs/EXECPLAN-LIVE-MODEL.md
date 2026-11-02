@@ -55,7 +55,7 @@ ollama pull qwen2.5:0.5b
 ```
 
 `ollama pull` contacts the model registry only to download the named weights.
-`zsh-git-inlay` sends bounded synthetic fixture context only to the loopback
+`zsh-git-good` sends bounded synthetic fixture context only to the loopback
 runtime. It makes no cloud-provider request. At the end, the maintainer may
 remove only the newly downloaded weights with:
 
@@ -162,7 +162,7 @@ the live runs and reported as approximate measurements.
    digest/size/quantization, `df -h`, `free -h`, and the current commit. Do not
    copy model blobs or raw prompts into the repository.
 2. Run the deterministic control and each model through
-   `zsh-git-inlay evaluate --fixtures --provider ollama --model <tag>` for the
+   `zsh-git-good evaluate --fixtures --provider ollama --model <tag>` for the
    development partition. Prompt changes, if any, must be small, named, and
    recorded before rerunning development only.
 3. Freeze the selected prompt, then run the held-out partition three times and
@@ -177,7 +177,7 @@ the live runs and reported as approximate measurements.
    socket. The foreground daemon check supplies the service/socket evidence:
 
    ```zsh
-   ZSH_GIT_INLAY_LIVE_OLLAMA_MODEL=<installed-exact-tag> make test-live-ollama
+   ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL=<installed-exact-tag> make test-live-ollama
    ```
 
    This opt-in target checks the already-running loopback runtime's installed

@@ -43,16 +43,16 @@ source_dir=$(
 	export CDPATH
 	cd -- "$source_dir" && pwd -P
 )
-binary="$source_dir/.build/zsh-git-inlay"
-plugin="$source_dir/zsh-git-inlay.plugin.zsh"
+binary="$source_dir/.build/zsh-git-good"
+plugin="$source_dir/zsh-git-good.plugin.zsh"
 [ -x "$binary" ] || { printf '%s\n' "build $binary first with make build" >&2; exit 1; }
 [ -f "$plugin" ] || { printf '%s\n' "plugin source is missing from $source_dir" >&2; exit 1; }
 
 bin_dir="$prefix/bin"
-plugin_dir="$prefix/share/zsh-git-inlay"
+plugin_dir="$prefix/share/zsh-git-good"
 mkdir -p "$bin_dir" "$plugin_dir"
-tmp_binary=$(mktemp "$bin_dir/.zsh-git-inlay.XXXXXX")
-tmp_plugin=$(mktemp "$plugin_dir/.zsh-git-inlay.plugin.zsh.XXXXXX")
+tmp_binary=$(mktemp "$bin_dir/.zsh-git-good.XXXXXX")
+tmp_plugin=$(mktemp "$plugin_dir/.zsh-git-good.plugin.zsh.XXXXXX")
 tmp_license=
 tmp_notices=
 cleanup() {
@@ -72,8 +72,8 @@ if [ -f "$source_dir/THIRD_PARTY_NOTICES" ]; then
     tmp_notices=$(mktemp "$plugin_dir/.THIRD_PARTY_NOTICES.XXXXXX")
     install -m 644 "$source_dir/THIRD_PARTY_NOTICES" "$tmp_notices"
 fi
-mv -f "$tmp_binary" "$bin_dir/zsh-git-inlay"
-mv -f "$tmp_plugin" "$plugin_dir/zsh-git-inlay.plugin.zsh"
+mv -f "$tmp_binary" "$bin_dir/zsh-git-good"
+mv -f "$tmp_plugin" "$plugin_dir/zsh-git-good.plugin.zsh"
 tmp_binary=
 tmp_plugin=
 if [ -n "$tmp_license" ]; then
@@ -85,7 +85,7 @@ if [ -n "$tmp_notices" ]; then
     tmp_notices=
 fi
 
-printf '%s\n' "installed $bin_dir/zsh-git-inlay"
+printf '%s\n' "installed $bin_dir/zsh-git-good"
 printf '%s\n' 'add this after zsh-autosuggestions in .zshrc:'
 printf '%s\n' "  path=(\"$prefix/bin\" \$path)"
-printf '  source "%s/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"\n' "$prefix"
+printf '  source "%s/share/zsh-git-good/zsh-git-good.plugin.zsh"\n' "$prefix"

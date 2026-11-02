@@ -102,7 +102,7 @@ are unavailable.
 
 ## Managed runtime status
 
-`zsh-git-inlay model status` reports only the private managed-data directory and
+`zsh-git-good model status` reports only the private managed-data directory and
 installed versions. `model install --confirm` requires an explicit confirmation
 even when an authenticated manifest becomes available. The installer design
 uses HTTPS-only artifacts, pinned SHA-256 checksums, bounded resume files,

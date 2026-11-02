@@ -6,13 +6,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/control"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/control"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
 )
 
 func clientControl(repository string) (control.Decision, error) {
-	if os.Getenv("ZSH_GIT_INLAY_DISABLED") == "1" {
+	if os.Getenv("ZSH_GIT_GOOD_DISABLED") == "1" {
 		return control.Decision{Status: "disabled", Scope: "session"}, nil
 	}
 	path, err := control.Path()
@@ -29,7 +29,7 @@ func controlCommand(operation string, arguments []string) error {
 	if operation == "snooze" {
 		// Accept the natural 'snooze 30m --repo' command form.
 		if len(arguments) == 0 {
-			return errors.New("usage: zsh-git-inlay snooze <duration, at most 24h> [--repo] [--cwd directory] [--json]")
+			return errors.New("usage: zsh-git-good snooze <duration, at most 24h> [--repo] [--cwd directory] [--json]")
 		}
 		var err error
 		duration, err = time.ParseDuration(arguments[0])
@@ -80,7 +80,7 @@ func controlCommand(operation string, arguments []string) error {
 		return err
 	}
 	decision := state.Check(id, time.Now())
-	if os.Getenv("ZSH_GIT_INLAY_DISABLED") == "1" {
+	if os.Getenv("ZSH_GIT_GOOD_DISABLED") == "1" {
 		decision = control.Decision{Status: "disabled", Scope: "session"}
 	}
 	if *jsonOutput {

@@ -17,8 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
 )
 
 type Artifact struct {
@@ -87,7 +87,7 @@ func (manager Manager) Load() (Manifest, error) {
 		return manifest, errors.New("invalid installation manifest metadata")
 	}
 	allowed := artifactPaths(manifest.Prefix)
-	for _, path := range []string{filepath.Join(manifest.Prefix, "bin/zsh-git-inlay"), filepath.Join(manifest.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")} {
+	for _, path := range []string{filepath.Join(manifest.Prefix, "bin/zsh-git-good"), filepath.Join(manifest.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")} {
 		if _, exists := manifest.Files[path]; !exists {
 			return manifest, errors.New("manifest does not track both required artifacts")
 		}
@@ -104,10 +104,10 @@ func (manager Manager) Load() (Manifest, error) {
 
 func artifactPaths(prefix string) map[string]os.FileMode {
 	return map[string]os.FileMode{
-		filepath.Join(prefix, "bin/zsh-git-inlay"):                            0o755,
-		filepath.Join(prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"): 0o644,
-		filepath.Join(prefix, "share/zsh-git-inlay/LICENSE"):                  0o644,
-		filepath.Join(prefix, "share/zsh-git-inlay/THIRD_PARTY_NOTICES"):      0o644,
+		filepath.Join(prefix, "bin/zsh-git-good"):                            0o755,
+		filepath.Join(prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh"): 0o644,
+		filepath.Join(prefix, "share/zsh-git-good/LICENSE"):                  0o644,
+		filepath.Join(prefix, "share/zsh-git-good/THIRD_PARTY_NOTICES"):      0o644,
 	}
 }
 
@@ -137,12 +137,12 @@ func (manager Manager) Install(options Options) (Result, error) {
 		return result, fmt.Errorf("installation already uses %s; uninstall it before changing prefix", previous.Prefix)
 	}
 	manifest := Manifest{Schema: 1, Prefix: options.Prefix, ShellFile: options.ShellFile, Autosuggestions: options.Autosuggestions, Version: options.Version, Installed: time.Now().UTC(), Files: map[string]Artifact{}}
-	sources := map[string]string{filepath.Join(options.Prefix, "bin/zsh-git-inlay"): options.Binary, filepath.Join(options.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"): options.Plugin}
+	sources := map[string]string{filepath.Join(options.Prefix, "bin/zsh-git-good"): options.Binary, filepath.Join(options.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh"): options.Plugin}
 	for name, source := range options.Notices {
 		if name != "LICENSE" && name != "THIRD_PARTY_NOTICES" {
 			return result, fmt.Errorf("unsupported installation notice %q", name)
 		}
-		sources[filepath.Join(options.Prefix, "share/zsh-git-inlay", name)] = source
+		sources[filepath.Join(options.Prefix, "share/zsh-git-good", name)] = source
 	}
 	changes := []edit.Change{}
 	paths := make([]string, 0, len(sources))

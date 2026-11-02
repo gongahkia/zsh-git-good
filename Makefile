@@ -1,6 +1,6 @@
 GO ?= go
 BUILD_DIR ?= .build
-BINARY := $(BUILD_DIR)/zsh-git-inlay
+BINARY := $(BUILD_DIR)/zsh-git-good
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --verify HEAD 2>/dev/null || printf unknown)
 DIST ?= dist/release-snapshot
@@ -14,7 +14,7 @@ all: build
 
 build:
 	mkdir -p $(BUILD_DIR)
-	$(GO) build $(BUILD_FLAGS) -o $(BINARY) ./cmd/zsh-git-inlay
+	$(GO) build $(BUILD_FLAGS) -o $(BINARY) ./cmd/zsh-git-good
 
 test:
 	python3 scripts/test-environment.py --binary "$(abspath $(BINARY))" -- $(MAKE) test-all
@@ -22,21 +22,21 @@ test:
 test-all: test-packaging test-setup test-go test-zsh test-eval test-nvim test-install test-dogfood test-soak test-lifecycle
 
 test-lifecycle: build
-	ZSH_GIT_INLAY_BIN=$(abspath $(BINARY)) python3 tests/lifecycle.py
+	ZSH_GIT_GOOD_BIN=$(abspath $(BINARY)) python3 tests/lifecycle.py
 
 test-go:
 	$(GO) test ./...
 
 test-zsh: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/shell-contract.zsh
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/integration.zsh
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/shell-contract.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/integration.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
 
 test-eval: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/evaluation.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/evaluation.zsh
 
 test-reliability: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
 
 test-nvim:
 	@if command -v nvim >/dev/null 2>&1; then \
@@ -49,7 +49,7 @@ test-packaging:
 	python3 -m unittest discover -s tests -p '*_test.py'
 
 test-setup: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/setup.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/setup.zsh
 
 test-install: build
 	$(TEST_ENV) zsh tests/install.zsh "$(abspath .)"
@@ -57,15 +57,15 @@ test-install: build
 test-integration: test-zsh test-eval test-nvim test-dogfood
 
 test-dogfood: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/dogfood.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/dogfood.zsh
 
 test-soak: build
-	$(TEST_ENV) env ZSH_GIT_INLAY_BIN="$(abspath $(BINARY))" zsh tests/soak.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/soak.zsh
 
 # This is deliberately opt-in: it needs a separately started loopback Ollama
-# runtime and an already downloaded model named by ZSH_GIT_INLAY_LIVE_OLLAMA_MODEL.
+# runtime and an already downloaded model named by ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL.
 test-live-ollama: build
-	ZSH_GIT_INLAY_BIN=$(abspath $(BINARY)) zsh tests/live-ollama.zsh
+	ZSH_GIT_GOOD_BIN=$(abspath $(BINARY)) zsh tests/live-ollama.zsh
 
 fuzz:
 	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzParseAndSuggestion -fuzztime=$${FUZZ_TIME:-3s} ./internal/command
@@ -79,12 +79,12 @@ fuzz:
 lint:
 	$(GO) vet ./...
 	test -z "$$($(GO)fmt -l $$(find cmd internal -name '*.go' -print))"
-	zsh -n tests/setup.zsh tests/shell-contract.zsh zsh-git-inlay.plugin.zsh tests/integration.zsh tests/reliability.zsh tests/evaluation.zsh tests/install.zsh tests/dogfood.zsh tests/soak.zsh tests/live-ollama.zsh
+	zsh -n tests/setup.zsh tests/shell-contract.zsh zsh-git-good.plugin.zsh tests/integration.zsh tests/reliability.zsh tests/evaluation.zsh tests/install.zsh tests/dogfood.zsh tests/soak.zsh tests/live-ollama.zsh
 	sh -n scripts/install-binary.sh scripts/install.sh scripts/install-release.sh scripts/uninstall.sh scripts/checksums.sh scripts/sbom.sh scripts/release-snapshot.sh
-	! rg -n '\beval\b|function[[:space:]]+git\b' zsh-git-inlay.plugin.zsh cmd internal
+	! rg -n '\beval\b|function[[:space:]]+git\b' zsh-git-good.plugin.zsh cmd internal
 
 bench:
-	$(GO) test -run '^$$' -bench . -benchmem ./internal/command ./internal/gitstate ./internal/candidate ./internal/daemon ./cmd/zsh-git-inlay
+	$(GO) test -run '^$$' -bench . -benchmem ./internal/command ./internal/gitstate ./internal/candidate ./internal/daemon ./cmd/zsh-git-good
 
 release-snapshot:
 	sh scripts/release-snapshot.sh --source "$(abspath .)" --output "$(abspath $(DIST))" --version "$(VERSION)" --commit "$(COMMIT)"

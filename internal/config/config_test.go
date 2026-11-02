@@ -11,7 +11,7 @@ import (
 
 func TestLoadValidatesGlobalSettings(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, "zsh-git-inlay", "config.toml")
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestLoadValidatesGlobalSettings(t *testing.T) {
 
 func TestLoadRejectsUnsafeProviderConfiguration(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, "zsh-git-inlay", "config.toml")
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestLoadRejectsUnsafeProviderConfiguration(t *testing.T) {
 
 func TestLoadAcceptsExplicitOpenAIWithoutCredentialConfiguration(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, "zsh-git-inlay", "config.toml")
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestLoadAcceptsExplicitOpenAIWithoutCredentialConfiguration(t *testing.T) {
 
 func TestRepositoryConfigRejectsCapabilities(t *testing.T) {
 	repository := t.TempDir()
-	path := filepath.Join(repository, ".zsh-git-inlay.toml")
+	path := filepath.Join(repository, ".zsh-git-good.toml")
 	if err := os.WriteFile(path, []byte("[commit]\nconvention = \"conventional\"\ntypes = [\"feat\", \"fix\"]\nscopes = [\"api\", \"cli\"]\nscope_paths = [\"internal/api=api\", \"cmd=cli\"]\nline_length = 72\ncapitalization = \"sentence\"\nbody = \"optional\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestRepositoryConfigRejectsCapabilities(t *testing.T) {
 
 func TestCycleKeymaps(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	for _, value := range []string{`["emacs", "viins"]`, `["vicmd"]`, `[]`, `["main"]`, `["viins", "viins"]`, `"viins"`} {
 		if err := os.WriteFile(path, []byte("[zsh]\ncycle_keymaps = "+value), 0600); err != nil {
 			t.Fatal(err)
@@ -117,7 +117,7 @@ func TestCycleKeymaps(t *testing.T) {
 
 func TestOllamaBudgetValidation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	for _, value := range []string{`context_tokens = 8192`, `output_tokens = 512`, `keep_alive = "0s"`, `cold_timeout = "45s"`, `context_tokens = 1`, `output_tokens = 0`, `keep_alive = "-1s"`, `cold_timeout = "5m"`} {
 		if err := os.WriteFile(path, []byte("[ollama]\n"+value), 0600); err != nil {
 			t.Fatal(err)
@@ -132,12 +132,12 @@ func TestOllamaBudgetValidation(t *testing.T) {
 
 func TestRepositoryOverridesOnlySpecifiedUserMessagePreferences(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	if err := os.WriteFile(path, []byte("[commit]\ncapitalization = 'sentence'\nline_length = 72\nscopes = ['api']\nscope_paths = ['internal/api=api']\nscope_mode = 'none'\n[suggestions]\ncandidate_count = 2\n[learning]\nenabled = false\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	repository := t.TempDir()
-	if err := os.WriteFile(filepath.Join(repository, ".zsh-git-inlay.toml"), []byte("[commit]\nline_length = 90\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(repository, ".zsh-git-good.toml"), []byte("[commit]\nline_length = 90\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	policy, err := LoadRepositoryPolicy(repository)
@@ -156,7 +156,7 @@ func TestLoadRejectsNamedPipeWithoutHanging(t *testing.T) {
 	if err := syscall.Mkfifo(path, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
 	done := make(chan error, 1)
 	go func() { _, err := Load(); done <- err }()
 	select {

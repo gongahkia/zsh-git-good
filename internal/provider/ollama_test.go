@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"os"

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
 )
 
 func factGit(t *testing.T, root string, args ...string) {
@@ -22,7 +22,7 @@ func factGit(t *testing.T, root string, args ...string) {
 
 func TestFactualProviderUsesStagedChangesAndPreservesBaseline(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", t.TempDir())
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", t.TempDir())
 	root := t.TempDir()
 	factGit(t, root, "init", "-q", "-b", "main")
 	factGit(t, root, "config", "user.name", "Test")
@@ -74,7 +74,7 @@ func TestFactualProviderUsesStagedChangesAndPreservesBaseline(t *testing.T) {
 
 func TestFactualProviderAddedDeclarationsAndDeletions(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", t.TempDir())
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", t.TempDir())
 	root := t.TempDir()
 	factGit(t, root, "init", "-q", "-b", "main")
 	if err := os.WriteFile(filepath.Join(root, "cache.go"), []byte("package cache\nfunc ClearCache() {}\n"), 0600); err != nil {
@@ -98,7 +98,7 @@ func TestFactualProviderNamesRenamesAndDeletions(t *testing.T) {
 	for _, operation := range []string{"rename", "remove"} {
 		t.Run(operation, func(t *testing.T) {
 			t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-			t.Setenv("ZSH_GIT_INLAY_DATA_DIR", t.TempDir())
+			t.Setenv("ZSH_GIT_GOOD_DATA_DIR", t.TempDir())
 			root := t.TempDir()
 			factGit(t, root, "init", "-q", "-b", "main")
 			factGit(t, root, "config", "user.name", "Test")

@@ -26,7 +26,7 @@ def prepare(dist, version, license_id, source):
     for platform, os_name in (("on_macos", "darwin"), ("on_linux", "linux")):
         blocks.append(f"  {platform} do")
         for cpu, arch in (("on_intel", "amd64"), ("on_arm", "arm64")):
-            name = f"zsh-git-inlay_{version}_{os_name}-{arch}.tar.gz"
+            name = f"zsh-git-good_{version}_{os_name}-{arch}.tar.gz"
             archive = dist / name
             digest = hashlib.sha256(archive.read_bytes()).hexdigest()
             if checksums.get(name) != digest:
@@ -35,18 +35,18 @@ def prepare(dist, version, license_id, source):
                 member = bundle.getmember("LICENSE")
                 if not member.isfile() or bundle.extractfile(member).read() != license_path.read_bytes():
                     raise ValueError(f"missing or mismatched selected license in {name}")
-            blocks += [f"    {cpu} do", f'      url "https://github.com/gongahkia/zsh-git-inlay/releases/download/{version}/{name}"', f'      sha256 "{digest}"', "    end"]
+            blocks += [f"    {cpu} do", f'      url "https://github.com/gongahkia/zsh-git-good/releases/download/{version}/{name}"', f'      sha256 "{digest}"', "    end"]
         blocks.append("  end")
     return '\n'.join([
-        "class ZshGitInlay < Formula",
+        "class ZshGitGood < Formula",
         '  desc "Prepared commit-message autosuggestions for Zsh"',
-        '  homepage "https://github.com/gongahkia/zsh-git-inlay"',
+        '  homepage "https://github.com/gongahkia/zsh-git-good"',
         f'  version "{version[1:]}"', f'  license "{license_id}"',
         *blocks, '  depends_on "git"', '  depends_on "zsh"', '  depends_on "zsh-autosuggestions"',
-        "  def install", '    bin.install "zsh-git-inlay"',
-        '    (share/"zsh-git-inlay").install "zsh-git-inlay.plugin.zsh"',
+        "  def install", '    bin.install "zsh-git-good"',
+        '    (share/"zsh-git-good").install "zsh-git-good.plugin.zsh"',
         '    pkgshare.install "LICENSE"', '    pkgshare.install "THIRD_PARTY_NOTICES" if File.exist?("THIRD_PARTY_NOTICES")', "  end", "  test do",
-        '    system bin/"zsh-git-inlay", "setup", "--check"', "  end", "end", "",
+        '    system bin/"zsh-git-good", "setup", "--check"', "  end", "end", "",
     ])
 
 

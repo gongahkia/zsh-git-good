@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/activity"
+	"github.com/gongahkia/zsh-git-good/internal/activity"
 )
 
 const (

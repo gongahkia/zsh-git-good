@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
 )
 
 type Message struct {

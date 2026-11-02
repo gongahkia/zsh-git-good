@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/runtime"
 )
 
 const MaxRepositories = 128

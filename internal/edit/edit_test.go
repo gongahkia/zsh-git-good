@@ -221,8 +221,8 @@ func TestInspectReadsMetadataWithoutCreatingOrDecodingBackups(t *testing.T) {
 }
 
 func TestRealProcessDeathRecoversPreparedMultiFileTransaction(t *testing.T) {
-	if os.Getenv("ZGI_EDIT_CRASH_HELPER") == "1" {
-		dir := os.Getenv("ZGI_EDIT_CRASH_DIRECTORY")
+	if os.Getenv("ZGG_EDIT_CRASH_HELPER") == "1" {
+		dir := os.Getenv("ZGG_EDIT_CRASH_DIRECTORY")
 		store := Store{Dir: filepath.Join(dir, "history"), afterWrite: func(index int) error {
 			if index == 0 {
 				if err := os.WriteFile(filepath.Join(dir, "written"), []byte("ready"), 0o600); err != nil {
@@ -248,7 +248,7 @@ func TestRealProcessDeathRecoversPreparedMultiFileTransaction(t *testing.T) {
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "first"), "original")
 	command := exec.Command(os.Args[0], "-test.run=^TestRealProcessDeathRecoversPreparedMultiFileTransaction$")
-	command.Env = append(os.Environ(), "ZGI_EDIT_CRASH_HELPER=1", "ZGI_EDIT_CRASH_DIRECTORY="+dir)
+	command.Env = append(os.Environ(), "ZGG_EDIT_CRASH_HELPER=1", "ZGG_EDIT_CRASH_DIRECTORY="+dir)
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
 	}

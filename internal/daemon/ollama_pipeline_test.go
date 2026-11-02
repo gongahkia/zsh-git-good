@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
 )
 
 func TestOllamaPipelineRejectsTruncationThenPublishesGroundedRecovery(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", t.TempDir())
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", t.TempDir())
 	var healthy atomic.Bool
 	runtime := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path == "/api/show" {

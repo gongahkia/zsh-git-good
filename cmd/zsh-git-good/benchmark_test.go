@@ -16,20 +16,20 @@ import (
 func BenchmarkSuggestHelper(b *testing.B) {
 	for _, files := range []int{10, 10000} {
 		b.Run(fmt.Sprintf("index_%d", files), func(b *testing.B) {
-			root, err := os.MkdirTemp("/tmp", "zgi-bench-")
+			root, err := os.MkdirTemp("/tmp", "zgg-bench-")
 			if err != nil {
 				b.Fatal(err)
 			}
 			b.Cleanup(func() { _ = os.RemoveAll(root) })
-			binary := filepath.Join(root, "zsh-git-inlay")
+			binary := filepath.Join(root, "zsh-git-good")
 			cmd := exec.Command("go", "build", "-o", binary, ".")
 			if output, err := cmd.CombinedOutput(); err != nil {
 				b.Fatalf("build helper: %s %v", output, err)
 			}
-			b.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", filepath.Join(root, "run"))
-			b.Setenv("ZSH_GIT_INLAY_CACHE_DIR", filepath.Join(root, "cache"))
-			b.Setenv("ZSH_GIT_INLAY_DATA_DIR", filepath.Join(root, "data"))
-			b.Setenv("ZSH_GIT_INLAY_CONFIG", filepath.Join(root, "absent.toml"))
+			b.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", filepath.Join(root, "run"))
+			b.Setenv("ZSH_GIT_GOOD_CACHE_DIR", filepath.Join(root, "cache"))
+			b.Setenv("ZSH_GIT_GOOD_DATA_DIR", filepath.Join(root, "data"))
+			b.Setenv("ZSH_GIT_GOOD_CONFIG", filepath.Join(root, "absent.toml"))
 			git := func(args ...string) {
 				b.Helper()
 				cmd := exec.Command("git", append([]string{"-C", root}, args...)...)

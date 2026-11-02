@@ -39,7 +39,7 @@ func WriteReports(directory string, report Report) (ReportPaths, error) {
 
 func Markdown(report Report) string {
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "# zsh-git-inlay evaluation report\n\n")
+	fmt.Fprintf(&builder, "# zsh-git-good evaluation report\n\n")
 	fmt.Fprintf(&builder, "Generated: %s  \n", report.GeneratedAt.Format(time.RFC3339))
 	fmt.Fprintf(&builder, "Corpus: %s (%s)  \n", report.CorpusVersion, report.CorpusDigest)
 	fmt.Fprintf(&builder, "Source: %s  \n", report.Source.Kind)

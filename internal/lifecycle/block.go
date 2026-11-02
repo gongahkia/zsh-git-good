@@ -7,19 +7,19 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 const (
-	BlockStart = "# >>> zsh-git-inlay managed >>>"
-	BlockEnd   = "# <<< zsh-git-inlay managed <<<"
+	BlockStart = "# >>> zsh-git-good managed >>>"
+	BlockEnd   = "# <<< zsh-git-good managed <<<"
 )
 
 var literalSource = regexp.MustCompile("^\\s*(source|\\.)\\s+('[^'\\n]*'|\"[^\"$`\\n]*\"|[^ \\t;|&<>$`\\n]+)\\s*(#.*)?$")
 
 func Block(prefix, dependency string) []byte {
-	return []byte(fmt.Sprintf("%s\npath=(%s $path)\nif (( ! ${+functions[_zsh_autosuggest_fetch_suggestion]} )); then\n  source %s\nfi\nsource %s\n%s\n", BlockStart, setup.Quote(prefix+"/bin"), setup.Quote(dependency), setup.Quote(prefix+"/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"), BlockEnd))
+	return []byte(fmt.Sprintf("%s\npath=(%s $path)\nif (( ! ${+functions[_zsh_autosuggest_fetch_suggestion]} )); then\n  source %s\nfi\nsource %s\n%s\n", BlockStart, setup.Quote(prefix+"/bin"), setup.Quote(dependency), setup.Quote(prefix+"/share/zsh-git-good/zsh-git-good.plugin.zsh"), BlockEnd))
 }
 
 func region(content []byte) (int, int, error) {
@@ -29,19 +29,19 @@ func region(content []byte) (int, int, error) {
 		switch line {
 		case BlockStart:
 			if start >= 0 || end >= 0 {
-				return 0, 0, errors.New("multiple or nested zsh-git-inlay managed blocks; inspect the shell file before editing")
+				return 0, 0, errors.New("multiple or nested zsh-git-good managed blocks; inspect the shell file before editing")
 			}
 			start = offset
 		case BlockEnd:
 			if start < 0 || end >= 0 {
-				return 0, 0, errors.New("unmatched zsh-git-inlay block end; inspect the shell file before editing")
+				return 0, 0, errors.New("unmatched zsh-git-good block end; inspect the shell file before editing")
 			}
 			end = offset + len(raw)
 		}
 		offset += len(raw)
 	}
 	if start >= 0 && end < 0 {
-		return 0, 0, errors.New("unterminated zsh-git-inlay managed block; inspect the shell file before editing")
+		return 0, 0, errors.New("unterminated zsh-git-good managed block; inspect the shell file before editing")
 	}
 	return start, end, nil
 }
@@ -59,13 +59,13 @@ func ReplaceBlock(content, block []byte, migrate bool) ([]byte, error) {
 	}
 	for _, line := range strings.Split(string(outside), "\n") {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "#") || !strings.Contains(line, "zsh-git-inlay.plugin.zsh") {
+		if strings.HasPrefix(trimmed, "#") || !strings.Contains(line, "zsh-git-good.plugin.zsh") {
 			continue
 		}
 		if !migrate || !literalSource.MatchString(line) {
 			return nil, fmt.Errorf("unmanaged integration outside the marked block: %s; remove it or migrate a literal source line explicitly", trimmed)
 		}
-		outside = bytes.Replace(outside, []byte(line), []byte("# zsh-git-inlay migrated: "+line), 1)
+		outside = bytes.Replace(outside, []byte(line), []byte("# zsh-git-good migrated: "+line), 1)
 	}
 	if migrate && !bytes.Equal(outside, content) {
 		// Migration keeps the old command as a comment and appends one

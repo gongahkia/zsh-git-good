@@ -98,7 +98,7 @@ func Default() Settings {
 }
 
 func configPath() string {
-	if value := os.Getenv("ZSH_GIT_INLAY_CONFIG"); value != "" {
+	if value := os.Getenv("ZSH_GIT_GOOD_CONFIG"); value != "" {
 		return value
 	}
 	base := os.Getenv("XDG_CONFIG_HOME")
@@ -109,7 +109,7 @@ func configPath() string {
 		}
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, "zsh-git-inlay", "config.toml")
+	return filepath.Join(base, "zsh-git-good", "config.toml")
 }
 
 // Load never executes configuration. Unknown keys are errors so a repository
@@ -372,7 +372,7 @@ func LoadRepositoryPolicy(root string) (RepositoryPolicy, error) {
 // generators independent of ambient dogfooding preferences, while repository
 // policy remains the final message-shape override in both workflows.
 func LoadRepositoryPolicyWithDefaults(root string, policy RepositoryPolicy) (RepositoryPolicy, error) {
-	path := filepath.Join(root, ".zsh-git-inlay.toml")
+	path := filepath.Join(root, ".zsh-git-good.toml")
 	content, err := readContent(path)
 	if os.IsNotExist(err) {
 		return policy, nil

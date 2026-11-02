@@ -45,8 +45,8 @@ git -C "$tmp" init -b main
 print -r -- prototype > "$tmp/cache.txt"
 git -C "$tmp" add cache.txt
 cd "$tmp"
-zsh-git-inlay observe --cwd "$tmp"
-# wait until: zsh-git-inlay candidates --cwd "$tmp"
+zsh-git-good observe --cwd "$tmp"
+# wait until: zsh-git-good candidates --cwd "$tmp"
 # then type the commit-message prefix: git commit -m
 # the configured autosuggestions highlight displays the primary prepared candidate.
 ```

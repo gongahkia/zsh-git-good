@@ -10,7 +10,7 @@ import time
 import unittest
 
 PROJECT = Path(__file__).resolve().parent.parent
-BINARY = Path(os.environ.get("ZSH_GIT_INLAY_BIN", PROJECT / ".build/zsh-git-inlay")).resolve()
+BINARY = Path(os.environ.get("ZSH_GIT_GOOD_BIN", PROJECT / ".build/zsh-git-good")).resolve()
 DEPENDENCY = next((path for path in [
     Path(os.environ.get("ZSH_AUTOSUGGESTIONS_SOURCE", "/unavailable")),
     Path("/opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh"),
@@ -28,18 +28,18 @@ class Lifecycle(unittest.TestCase):
     def setUpClass(cls):
         if not BINARY.is_file() or DEPENDENCY is None or shutil.which("zsh") is None:
             raise RuntimeError("Build the helper and install zsh-autosuggestions (or set ZSH_AUTOSUGGESTIONS_SOURCE) before this required rehearsal")
-        cls.old_build = tempfile.TemporaryDirectory(prefix="zgi-old-", dir="/tmp")
+        cls.old_build = tempfile.TemporaryDirectory(prefix="zgg-old-", dir="/tmp")
         cls.old_binary = Path(cls.old_build.name) / "old-helper"
-        subprocess.run(["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w -buildid= -X main.version=old-lifecycle-build -X main.commit=older-build", "-o", str(cls.old_binary), "./cmd/zsh-git-inlay"], cwd=PROJECT, check=True, timeout=120)
+        subprocess.run(["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w -buildid= -X main.version=old-lifecycle-build -X main.commit=older-build", "-o", str(cls.old_binary), "./cmd/zsh-git-good"], cwd=PROJECT, check=True, timeout=120)
 
     @classmethod
     def tearDownClass(cls):
         cls.old_build.cleanup()
 
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="zgi-life-", dir="/tmp")
+        self.directory = tempfile.TemporaryDirectory(prefix="zgg-life-", dir="/tmp")
         self.root = Path(self.directory.name)
-        self.env = {key: value for key, value in os.environ.items() if not key.startswith(("ZSH_GIT_INLAY_", "GIT_")) and key not in ("ZDOTDIR", "OPENAI_API_KEY")}
+        self.env = {key: value for key, value in os.environ.items() if not key.startswith(("ZSH_GIT_GOOD_", "GIT_")) and key not in ("ZDOTDIR", "OPENAI_API_KEY")}
         for key, name in {"HOME": "home", "XDG_CONFIG_HOME": "config", "XDG_DATA_HOME": "data", "XDG_CACHE_HOME": "cache", "XDG_STATE_HOME": "state", "XDG_RUNTIME_DIR": "run"}.items():
             path = self.root / name
             path.mkdir(mode=0o700)
@@ -47,17 +47,17 @@ class Lifecycle(unittest.TestCase):
             self.env[key] = str(path)
         self.env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", ZSH_AUTOSUGGESTIONS_SOURCE=str(DEPENDENCY))
         self.prefix = self.root / "prefix with ' quotes"
-        self.installed = self.prefix / "bin/zsh-git-inlay"
+        self.installed = self.prefix / "bin/zsh-git-good"
         self.zdotdir = self.root / "zsh"
         self.zdotdir.mkdir(mode=0o700)
         self.rc_target = self.root / "dotfiles-zshrc"
-        self.rc_target.write_text("# my surrounding configuration\nexport ZGI_LIFECYCLE_SENTINEL=kept\n")
+        self.rc_target.write_text("# my surrounding configuration\nexport ZGG_LIFECYCLE_SENTINEL=kept\n")
         self.rc = self.zdotdir / ".zshrc"
         self.rc.symlink_to(self.rc_target)
         (Path(self.env["HOME"]) / ".zshenv").write_text("ZDOTDIR=" + quote(self.zdotdir) + "\n")
-        self.config = Path(self.env["XDG_CONFIG_HOME"]) / "zsh-git-inlay/config.toml"
-        self.data = Path(self.env["XDG_DATA_HOME"]) / "zsh-git-inlay"
-        self.socket = Path(self.env["XDG_RUNTIME_DIR"]) / "zsh-git-inlay/daemon.sock"
+        self.config = Path(self.env["XDG_CONFIG_HOME"]) / "zsh-git-good/config.toml"
+        self.data = Path(self.env["XDG_DATA_HOME"]) / "zsh-git-good"
+        self.socket = Path(self.env["XDG_RUNTIME_DIR"]) / "zsh-git-good/daemon.sock"
         self.repo = self.root / "repo"
         self.git("init", "-q", "-b", "main", str(self.repo), cwd=self.root)
         self.git("config", "user.name", "Lifecycle Fixture")
@@ -107,7 +107,7 @@ class Lifecycle(unittest.TestCase):
         self.assertTrue(result["changed"])
         self.assertEqual(Path(result["installation"]["shell_file"]), self.rc)
         self.assertTrue(self.rc.is_symlink())
-        self.assertEqual(self.rc_target.read_text().count("# >>> zsh-git-inlay managed >>>"), 1)
+        self.assertEqual(self.rc_target.read_text().count("# >>> zsh-git-good managed >>>"), 1)
         for probe in result["shell_checks"]:
             self.assertTrue(probe["loaded"] and probe["dependency_loaded"] and probe["async"])
         return result
@@ -127,12 +127,12 @@ class Lifecycle(unittest.TestCase):
         installed = self.install()
         self.assertTrue(self.report("doctor", "--check")["ok"])
         self.assertTrue(self.wait_ready()["suggestion"].startswith("git commit -m "))
-        actual_shell = subprocess.run(["zsh", "-ic", "suggestion=''; _zsh_autosuggest_strategy_git-inlay 'git commit -m '; print -r -- \"$suggestion\""], cwd=self.repo, env=self.env, text=True, capture_output=True, timeout=10)
+        actual_shell = subprocess.run(["zsh", "-ic", "suggestion=''; _zsh_autosuggest_strategy_git-good 'git commit -m '; print -r -- \"$suggestion\""], cwd=self.repo, env=self.env, text=True, capture_output=True, timeout=10)
         self.assertEqual(actual_shell.returncode, 0, actual_shell.stderr)
         self.assertTrue(actual_shell.stdout.strip().startswith("git commit -m "), actual_shell.stdout)
         repeated = self.report("setup", "install", "--source", PROJECT, "--prefix", self.prefix, "--autosuggestions", DEPENDENCY)
         self.assertFalse(repeated["changed"])
-        self.assertEqual(self.rc_target.read_text().count("# >>> zsh-git-inlay managed >>>"), 1)
+        self.assertEqual(self.rc_target.read_text().count("# >>> zsh-git-good managed >>>"), 1)
         tuned = self.report("setup", "customize", "--set", "commit.capitalization=sentence", "--set", "commit.line_length=72", "--set", "commit.scopes=[\"cli\"]", "--set", "commit.scope_paths=[\"cmd/demo=cli\"]", "--set", "suggestions.candidate_count=1", "--set", "learning.enabled=false")
         self.assertTrue(tuned["changed"])
         self.wait_ready()
@@ -172,7 +172,7 @@ class Lifecycle(unittest.TestCase):
         self.assertFalse(self.installed.exists())
         self.assertTrue(self.rc.is_symlink())
         self.assertIn("# a later unrelated shell edit", self.rc_target.read_text())
-        self.assertNotIn("# >>> zsh-git-inlay managed >>>", self.rc_target.read_text())
+        self.assertNotIn("# >>> zsh-git-good managed >>>", self.rc_target.read_text())
         self.assertTrue(self.config.exists() and (self.data / "feedback.json").exists())
         recovery = Path(removed["recovery_helper"])
         self.assertEqual(recovery.stat().st_mode & 0o777, 0o700)
@@ -187,7 +187,7 @@ class Lifecycle(unittest.TestCase):
         self.assertNotIn("transaction", purged)
         self.assertFalse(recovery.exists())
         for key in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR"):
-            self.assertFalse((Path(self.env[key]) / "zsh-git-inlay").exists())
+            self.assertFalse((Path(self.env[key]) / "zsh-git-good").exists())
             self.assertEqual((Path(self.env[key]) / "unrelated-sentinel").read_text(), "retain\n")
         self.assertTrue(Path(installed["installation"]["shell_file"]).is_symlink())
 
@@ -226,7 +226,7 @@ class Lifecycle(unittest.TestCase):
         self.assertFalse(self.socket.exists())
         self.wait_ready()
         self.assertEqual(self.report("status", "--cwd", self.repo)["build"]["sha256"], self.report("version")["sha256"])
-        plugin = self.prefix / "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+        plugin = self.prefix / "share/zsh-git-good/zsh-git-good.plugin.zsh"
         original_plugin = plugin.read_bytes()
         plugin.write_text("# damaged installed plugin\n")
         self.rc_target.write_text("# keep my replacement configuration\n")
@@ -236,7 +236,7 @@ class Lifecycle(unittest.TestCase):
         self.assertTrue(self.rc.is_symlink())
         self.assertTrue(self.rc_target.read_text().startswith("# keep my replacement configuration\n"))
         original_rc = self.rc_target.read_text()
-        block = original_rc[original_rc.index("# >>> zsh-git-inlay managed >>>"):]
+        block = original_rc[original_rc.index("# >>> zsh-git-good managed >>>"):]
         duplicate = original_rc + block
         self.rc_target.write_text(duplicate)
         refused = self.command("doctor", "--fix", "--json", success=False)

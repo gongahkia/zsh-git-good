@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
 )
 
 // Diagnostic is an explicitly requested repository view. Interactive lookup
@@ -57,15 +57,15 @@ func (server *Server) diagnose(cwd string) ipc.Reply {
 func DiagnosticAction(status string) string {
 	switch status {
 	case "disabled", "snoozed":
-		return "Run zsh-git-inlay control status --repo, then enable the disabled scope or wait for its snooze to expire."
+		return "Run zsh-git-good control status --repo, then enable the disabled scope or wait for its snooze to expire."
 	case "controls_invalid":
-		return "Run zsh-git-inlay doctor to inspect the private controls file; restore its backup or correct the reported cause."
+		return "Run zsh-git-good doctor to inspect the private controls file; restore its backup or correct the reported cause."
 	case "ready":
 		return "Type git commit -m followed by a space; accept with your usual autosuggestion binding."
 	case "pending":
 		return "Preparation is running; type another character or fetch suggestions again when it finishes."
 	case "not_prepared", "stale", "activity_stale":
-		return "Run zsh-git-inlay observe --cwd . to prepare the current staged state."
+		return "Run zsh-git-good observe --cwd . to prepare the current staged state."
 	case "no_staged_changes":
 		return "Stage the changes you intend to commit."
 	case "outside_repository":
@@ -73,7 +73,7 @@ func DiagnosticAction(status string) string {
 	case "conflicted_index":
 		return "Resolve and stage the conflicted files."
 	case "body_required":
-		return "Run zsh-git-inlay compose to prepare the required commit body."
+		return "Run zsh-git-good compose to prepare the required commit body."
 	case "generation_failed":
 		return "Check the selected provider, runtime and model; use doctor and review local generation budgets before retrying observe."
 	case "withheld_by_policy":
@@ -83,8 +83,8 @@ func DiagnosticAction(status string) string {
 	case "unsupported_command":
 		return "Use a supported git commit -m form with the cursor at the end."
 	case "daemon_unavailable":
-		return "Return to a prompt or run zsh-git-inlay observe --cwd .; use doctor if startup fails."
+		return "Return to a prompt or run zsh-git-good observe --cwd .; use doctor if startup fails."
 	default:
-		return "Run zsh-git-inlay doctor and check the global/repository configuration."
+		return "Run zsh-git-good doctor and check the global/repository configuration."
 	}
 }

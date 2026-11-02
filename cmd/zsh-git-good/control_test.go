@@ -9,10 +9,10 @@ import (
 
 func TestGlobalDisableSnoozeAndSessionControlsDoNotNeedAWorkingConfigOrDaemon(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", filepath.Join(dir, "data"))
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", filepath.Join(dir, "runtime"))
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", filepath.Join(dir, "broken.toml"))
-	t.Setenv("ZSH_GIT_INLAY_DISABLED", "0")
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", filepath.Join(dir, "data"))
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", filepath.Join(dir, "runtime"))
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", filepath.Join(dir, "broken.toml"))
+	t.Setenv("ZSH_GIT_GOOD_DISABLED", "0")
 	if err := os.WriteFile(filepath.Join(dir, "broken.toml"), []byte("broken config"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestGlobalDisableSnoozeAndSessionControlsDoNotNeedAWorkingConfigOrDaemon(t 
 			}
 		}
 	}
-	t.Setenv("ZSH_GIT_INLAY_DISABLED", "1")
+	t.Setenv("ZSH_GIT_GOOD_DISABLED", "1")
 	output, err := captureCommandOutput(func() error { return run([]string{"control", "status", "--json"}) })
 	if err != nil || !strings.Contains(output, "session") {
 		t.Fatalf("session override missing: %s %v", output, err)

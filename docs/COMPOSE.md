@@ -1,6 +1,6 @@
 # Secondary commit-body composition
 
-`zsh-git-inlay compose` is an optional administrative editor workflow. The
+`zsh-git-good compose` is an optional administrative editor workflow. The
 ordinary product remains one single-line Zsh autosuggestion; composing a body
 does not alter the ZLE strategy, create a commit, stage content, or replace
 normal `git commit` usage.
@@ -16,8 +16,8 @@ motivation, test, or outcome claims. The proposal is written to an owner-only
 `0600` temporary file and opened through the configured Git editor:
 
 ```zsh
-zsh-git-inlay compose --cwd .
-zsh-git-inlay compose --cwd . --candidate 1 --json
+zsh-git-good compose --cwd .
+zsh-git-good compose --cwd . --candidate 1 --json
 ```
 
 The command accepts `GIT_EDITOR` when set; otherwise it consults only the

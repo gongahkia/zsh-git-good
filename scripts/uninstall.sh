@@ -36,20 +36,20 @@ case "$prefix" in
 		exit 2
 		;;
 esac
-binary="$prefix/bin/zsh-git-inlay"
-plugin="$prefix/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+binary="$prefix/bin/zsh-git-good"
+plugin="$prefix/share/zsh-git-good/zsh-git-good.plugin.zsh"
 if [ -x "$binary" ]; then
 	"$binary" daemon stop >/dev/null 2>&1 || true
 fi
-rm -f -- "$binary" "$plugin" "$prefix/share/zsh-git-inlay/LICENSE" "$prefix/share/zsh-git-inlay/THIRD_PARTY_NOTICES"
-rmdir "$prefix/share/zsh-git-inlay" 2>/dev/null || true
+rm -f -- "$binary" "$plugin" "$prefix/share/zsh-git-good/LICENSE" "$prefix/share/zsh-git-good/THIRD_PARTY_NOTICES"
+rmdir "$prefix/share/zsh-git-good" 2>/dev/null || true
 rmdir "$prefix/share" 2>/dev/null || true
 rmdir "$prefix/bin" 2>/dev/null || true
 
 remove_product_directory() {
 	directory=$1
 	case "$directory" in
-		*/zsh-git-inlay) ;;
+		*/zsh-git-good) ;;
 		*)
 			printf '%s\n' "refusing unexpected data path: $directory" >&2
 			return 1
@@ -60,13 +60,13 @@ remove_product_directory() {
 
 if [ "$purge" = true ]; then
 	home=${HOME:?HOME is required to purge local data}
-	remove_product_directory "${XDG_CACHE_HOME:-$home/.cache}/zsh-git-inlay"
-	remove_product_directory "${XDG_STATE_HOME:-$home/.local/state}/zsh-git-inlay"
-	remove_product_directory "${XDG_DATA_HOME:-$home/.local/share}/zsh-git-inlay"
-	remove_product_directory "${XDG_CONFIG_HOME:-$home/.config}/zsh-git-inlay"
+	remove_product_directory "${XDG_CACHE_HOME:-$home/.cache}/zsh-git-good"
+	remove_product_directory "${XDG_STATE_HOME:-$home/.local/state}/zsh-git-good"
+	remove_product_directory "${XDG_DATA_HOME:-$home/.local/share}/zsh-git-good"
+	remove_product_directory "${XDG_CONFIG_HOME:-$home/.config}/zsh-git-good"
 	if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
-		remove_product_directory "$XDG_RUNTIME_DIR/zsh-git-inlay"
+		remove_product_directory "$XDG_RUNTIME_DIR/zsh-git-good"
 	fi
-	printf '%s\n' 'removed zsh-git-inlay local data after explicit purge request'
+	printf '%s\n' 'removed zsh-git-good local data after explicit purge request'
 fi
-printf '%s\n' 'removed installed zsh-git-inlay files; remove its source line from .zshrc'
+printf '%s\n' 'removed installed zsh-git-good files; remove its source line from .zshrc'

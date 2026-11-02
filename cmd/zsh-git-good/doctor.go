@@ -14,17 +14,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/cloud"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/control"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
-	"github.com/gongahkia/zsh-git-inlay/internal/feedback"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/lifecycle"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/cloud"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/control"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/feedback"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/lifecycle"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 type doctorCheck struct {
@@ -42,7 +42,7 @@ func doctorCommand(arguments []string) error {
 	dependency := flags.String("autosuggestions", "", "explicit dependency entrypoint for the clean-shell check")
 	for _, arg := range arguments {
 		if arg == "--help" || arg == "-h" {
-			fmt.Println("usage: zsh-git-inlay doctor [--check] [--fix] [--json] [--cwd directory] [--shell-file path] [--autosuggestions path]\nDefault checks inspect configuration, owned files, controls, permissions and daemon state.\n--check verifies fresh normal/login interactive shells; --fix backs up conservative repairs and verifies their result.")
+			fmt.Println("usage: zsh-git-good doctor [--check] [--fix] [--json] [--cwd directory] [--shell-file path] [--autosuggestions path]\nDefault checks inspect configuration, owned files, controls, permissions and daemon state.\n--check verifies fresh normal/login interactive shells; --fix backs up conservative repairs and verifies their result.")
 			return nil
 		}
 	}
@@ -78,7 +78,7 @@ func doctorCommand(arguments []string) error {
 	installation.ConfigValid = settingsErr == nil
 	if settingsErr != nil {
 		installation.Problem = settingsErr.Error()
-		add("user_config", "fail", settingsErr.Error(), "Run zsh-git-inlay config repair, or set the reported key to a valid value.")
+		add("user_config", "fail", settingsErr.Error(), "Run zsh-git-good config repair, or set the reported key to a valid value.")
 	} else {
 		add("user_config", "pass", "Valid typed preferences: "+config.Path(), "")
 	}
@@ -102,7 +102,7 @@ func doctorCommand(arguments []string) error {
 		err        error
 	}{{"data_directory", dataPath, dataErr}, {"state_directory", statePath, stateErr}, {"cache_directory", cachePath, cacheErr}, {"runtime_directory", runPath, runErr}} {
 		if item.err != nil {
-			add(item.name, "fail", item.err.Error(), "Correct the corresponding XDG/ZSH_GIT_INLAY directory override.")
+			add(item.name, "fail", item.err.Error(), "Correct the corresponding XDG/ZSH_GIT_GOOD directory override.")
 			continue
 		}
 		if err := inspectPrivateDirectory(item.path); err != nil {
@@ -199,8 +199,8 @@ func doctorCommand(arguments []string) error {
 		}
 		add("controls", status, "Global suggestions: "+decision.Status, "Use control status --repo, enable, or enable --repo to inspect and change the effective scope.")
 	}
-	if os.Getenv("ZSH_GIT_INLAY_DISABLED") == "1" {
-		add("session_control", "warning", "ZSH_GIT_INLAY_DISABLED=1 suppresses this session", "Unset ZSH_GIT_INLAY_DISABLED in this session when you want suggestions again.")
+	if os.Getenv("ZSH_GIT_GOOD_DISABLED") == "1" {
+		add("session_control", "warning", "ZSH_GIT_GOOD_DISABLED=1 suppresses this session", "Unset ZSH_GIT_GOOD_DISABLED in this session when you want suggestions again.")
 	}
 	if dataErr == nil {
 		if _, err := feedback.Load(filepath.Join(dataPath, "feedback.json")); err != nil {
@@ -222,7 +222,7 @@ func doctorCommand(arguments []string) error {
 				add(name, "fail", err.Error(), "Correct the startup failure or timeout shown in startup_diagnostics, then retry doctor --check.")
 				continue
 			}
-			if !probe.Loaded || !probe.DependencyLoaded || len(probe.Strategies) == 0 || probe.Strategies[0] != "git-inlay" {
+			if !probe.Loaded || !probe.DependencyLoaded || len(probe.Strategies) == 0 || probe.Strategies[0] != "git-good" {
 				detail := fmt.Sprintf("dependency_loaded=%t, plugin_loaded=%t, strategy_order=%s", probe.DependencyLoaded, probe.Loaded, strings.Join(probe.Strategies, ","))
 				if probe.Stderr != "" {
 					detail += "; startup: " + probe.Stderr
@@ -230,7 +230,7 @@ func doctorCommand(arguments []string) error {
 				add(name, "fail", detail, "Source zsh-autosuggestions before the plugin; use setup --wizard or doctor --fix for managed integration.")
 				continue
 			}
-			add(name, "pass", "Fresh shell activated dependency and git-inlay first", "")
+			add(name, "pass", "Fresh shell activated dependency and git-good first", "")
 			if probe.PluginContract != setup.PluginContract {
 				add(name+"_contract", "fail", "Loaded plugin contract "+probe.PluginContract+"; helper expects "+setup.PluginContract, "Upgrade the plugin/helper together with setup upgrade.")
 			} else {
@@ -246,16 +246,16 @@ func doctorCommand(arguments []string) error {
 			} else {
 				add(name+"_binary", "pass", probe.Binary, "")
 			}
-			if manifestErr == nil && !sameFileDigest(probe.PluginSource, filepath.Join(manifest.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")) {
+			if manifestErr == nil && !sameFileDigest(probe.PluginSource, filepath.Join(manifest.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")) {
 				add(name+"_plugin_source", "fail", "The active plugin differs from the recorded installation: "+probe.PluginSource, "Remove the untracked source line or migrate it explicitly with setup --wizard --migrate.")
 			}
 			if settingsErr == nil && probe.CycleBinding != "none" {
 				for _, keymap := range probe.CycleKeymaps {
-					if !strings.HasSuffix(probe.Bindings[keymap], "zsh-git-inlay-cycle") {
+					if !strings.HasSuffix(probe.Bindings[keymap], "zsh-git-good-cycle") {
 						add(name+"_binding_"+keymap, "fail", "Configured cycle binding is absent or overwritten: "+probe.CycleBinding, "Choose a binding/keymap with config set; inspect later bindkey commands in your shell file.")
 					}
 					previous := probe.PreviousBindings[keymap]
-					if previous != "" && previous != "undefined-key" && previous != "zsh-git-inlay-cycle" {
+					if previous != "" && previous != "undefined-key" && previous != "zsh-git-good-cycle" {
 						add(name+"_conflict_"+keymap, "warning", "Cycling replaced existing widget "+previous+" on "+probe.CycleBinding, "Choose another zsh.cycle_keybinding or set it to none; unloading restores the previous widget.")
 					}
 				}
@@ -386,7 +386,7 @@ func doctorCommand(arguments []string) error {
 		for _, repair := range repairs {
 			fmt.Println("REPAIRED", repair.Kind+":", repair.Detail)
 			if repair.Transaction != "" {
-				fmt.Printf("  Backup: %s\n  Undo: zsh-git-inlay undo %s\n", repair.Backup, repair.Transaction)
+				fmt.Printf("  Backup: %s\n  Undo: zsh-git-good undo %s\n", repair.Backup, repair.Transaction)
 			}
 		}
 	}

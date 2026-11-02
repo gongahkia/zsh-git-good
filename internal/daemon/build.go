@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 type Build struct {

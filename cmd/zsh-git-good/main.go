@@ -15,20 +15,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/activity"
-	"github.com/gongahkia/zsh-git-inlay/internal/cloud"
-	"github.com/gongahkia/zsh-git-inlay/internal/command"
-	"github.com/gongahkia/zsh-git-inlay/internal/compose"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/evaluation"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/grounding"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/learning"
-	"github.com/gongahkia/zsh-git-inlay/internal/managed"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
-	runtimepath "github.com/gongahkia/zsh-git-inlay/internal/runtime"
+	"github.com/gongahkia/zsh-git-good/internal/activity"
+	"github.com/gongahkia/zsh-git-good/internal/cloud"
+	"github.com/gongahkia/zsh-git-good/internal/command"
+	"github.com/gongahkia/zsh-git-good/internal/compose"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/evaluation"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/grounding"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/learning"
+	"github.com/gongahkia/zsh-git-good/internal/managed"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
+	runtimepath "github.com/gongahkia/zsh-git-good/internal/runtime"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "zsh-git-inlay:", err)
+		fmt.Fprintln(os.Stderr, "zsh-git-good:", err)
 		os.Exit(1)
 	}
 }
@@ -49,7 +49,7 @@ func run(arguments []string) error {
 	}
 	switch arguments[0] {
 	case "help", "--help", "-h":
-		fmt.Println("zsh-git-inlay prepares grounded commit-message autosuggestions for Zsh.")
+		fmt.Println("zsh-git-good prepares grounded commit-message autosuggestions for Zsh.")
 		return setupHelp()
 	case "version":
 		return versionCommand(arguments[1:])
@@ -67,7 +67,7 @@ func run(arguments []string) error {
 		return controlCommand(arguments[0], arguments[1:])
 	case "control":
 		if len(arguments) < 2 || arguments[1] != "status" {
-			return errors.New("usage: zsh-git-inlay control status [--repo] [--cwd directory] [--json]")
+			return errors.New("usage: zsh-git-good control status [--repo] [--cwd directory] [--json]")
 		}
 		return controlCommand("status", arguments[2:])
 	case "feedback":
@@ -110,7 +110,7 @@ func run(arguments []string) error {
 }
 
 func usage() error {
-	return errors.New("usage: zsh-git-inlay {help|version|setup|uninstall|undo|doctor|config|enable|disable|snooze|control status|feedback|status|fingerprint|context|observe|suggest|candidates|explain|evaluate|review|model|permissions|cloud|compose|activity|learning|daemon serve|daemon stop}")
+	return errors.New("usage: zsh-git-good {help|version|setup|uninstall|undo|doctor|config|enable|disable|snooze|control status|feedback|status|fingerprint|context|observe|suggest|candidates|explain|evaluate|review|model|permissions|cloud|compose|activity|learning|daemon serve|daemon stop}")
 }
 
 func versionCommand(arguments []string) error {
@@ -118,7 +118,7 @@ func versionCommand(arguments []string) error {
 	flags.SetOutput(ioDiscard{})
 	jsonOutput := flags.Bool("json", false, "emit JSON")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay version [--json]")
+		return errors.New("usage: zsh-git-good version [--json]")
 	}
 	build := daemon.CurrentBuild(version, commit)
 	report := map[string]string{"version": version, "commit": commit, "go": runtime.Version(), "protocol": fmt.Sprint(build.Protocol), "plugin_contract": build.PluginContract, "executable": build.Executable, "sha256": build.SHA256}
@@ -431,7 +431,7 @@ func status(arguments []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay status [--cwd directory] [--buffer command] [--json]")
+		return errors.New("usage: zsh-git-good status [--cwd directory] [--buffer command] [--json]")
 	}
 	cwd, err := resolveCWD(*cwdFlag)
 	if err != nil {
@@ -470,7 +470,7 @@ func evaluateCommand(arguments []string) error {
 		return err
 	}
 	if (*fixtures && *repository != "") || (!*fixtures && *repository == "") {
-		return errors.New("usage: zsh-git-inlay evaluate --fixtures | --repo <local-repository>")
+		return errors.New("usage: zsh-git-good evaluate --fixtures | --repo <local-repository>")
 	}
 	var (
 		generator evaluation.Generator
@@ -539,7 +539,7 @@ func evaluateCommand(arguments []string) error {
 
 func modelCommand(arguments []string) error {
 	if len(arguments) == 0 {
-		return errors.New("usage: zsh-git-inlay model {status|install --confirm|rollback <version>|uninstall <version> --confirm}")
+		return errors.New("usage: zsh-git-good model {status|install --confirm|rollback <version>|uninstall <version> --confirm}")
 	}
 	directory, err := runtimepath.DataDir()
 	if err != nil {
@@ -552,7 +552,7 @@ func modelCommand(arguments []string) error {
 	switch arguments[0] {
 	case "status":
 		if len(arguments) != 1 {
-			return errors.New("usage: zsh-git-inlay model status")
+			return errors.New("usage: zsh-git-good model status")
 		}
 		status, err := manager.Status()
 		if err != nil {
@@ -566,12 +566,12 @@ func modelCommand(arguments []string) error {
 		return errors.New("no authenticated managed runtime/model manifest is bundled; no download was attempted")
 	case "rollback":
 		if len(arguments) != 2 {
-			return errors.New("usage: zsh-git-inlay model rollback <version>")
+			return errors.New("usage: zsh-git-good model rollback <version>")
 		}
 		return manager.Rollback(arguments[1])
 	case "uninstall":
 		if len(arguments) != 3 || arguments[2] != "--confirm" {
-			return errors.New("usage: zsh-git-inlay model uninstall <version> --confirm")
+			return errors.New("usage: zsh-git-good model uninstall <version> --confirm")
 		}
 		return manager.Uninstall(arguments[1])
 	default:
@@ -596,7 +596,7 @@ func permissionsCommand(arguments []string) error {
 		return printJSON(permissions)
 	}
 	if len(arguments) != 2 || arguments[1] != "activity" || (arguments[0] != "enable" && arguments[0] != "revoke") {
-		return errors.New("usage: zsh-git-inlay permissions {enable activity|revoke activity}")
+		return errors.New("usage: zsh-git-good permissions {enable activity|revoke activity}")
 	}
 	permissions.Activity = arguments[0] == "enable"
 	if err := activity.SavePermissions(path, permissions); err != nil {
@@ -607,7 +607,7 @@ func permissionsCommand(arguments []string) error {
 
 func cloudCommand(arguments []string) error {
 	if len(arguments) == 0 {
-		return errors.New("usage: zsh-git-inlay cloud {status|preview|grant|revoke}")
+		return errors.New("usage: zsh-git-good cloud {status|preview|grant|revoke}")
 	}
 	switch arguments[0] {
 	case "status":
@@ -619,7 +619,7 @@ func cloudCommand(arguments []string) error {
 	case "revoke":
 		return cloudRevoke(arguments[1:])
 	default:
-		return errors.New("usage: zsh-git-inlay cloud {status|preview|grant|revoke}")
+		return errors.New("usage: zsh-git-good cloud {status|preview|grant|revoke}")
 	}
 }
 
@@ -629,7 +629,7 @@ func composeCommand(arguments []string) error {
 	flags, cwdFlag, jsonOutput := commonFlags("compose")
 	candidateIndex := flags.Int("candidate", 0, "prepared candidate index")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 || *candidateIndex < 0 {
-		return errors.New("usage: zsh-git-inlay compose [--cwd <directory>] [--candidate <index>] [--json]")
+		return errors.New("usage: zsh-git-good compose [--cwd <directory>] [--candidate <index>] [--json]")
 	}
 	cwd, err := resolveCWD(*cwdFlag)
 	if err != nil {
@@ -673,7 +673,7 @@ func composeCommand(arguments []string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.CreateTemp("", "zsh-git-inlay-compose-")
+	file, err := os.CreateTemp("", "zsh-git-good-compose-")
 	if err != nil {
 		return err
 	}
@@ -738,7 +738,7 @@ func cloudStatus(arguments []string) error {
 	flags.SetOutput(ioDiscard{})
 	jsonOutput := flags.Bool("json", false, "emit JSON")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay cloud status [--json]")
+		return errors.New("usage: zsh-git-good cloud status [--json]")
 	}
 	store, err := cloudStore()
 	if err != nil {
@@ -763,7 +763,7 @@ func cloudStatus(arguments []string) error {
 
 func cloudGrant(arguments []string) error {
 	if len(arguments) == 0 || !cloud.ValidProvider(arguments[0]) {
-		return errors.New("usage: zsh-git-inlay cloud grant openai --classes <comma-separated-classes> --confirm [--json]")
+		return errors.New("usage: zsh-git-good cloud grant openai --classes <comma-separated-classes> --confirm [--json]")
 	}
 	providerName := arguments[0]
 	flags := flag.NewFlagSet("cloud grant", flag.ContinueOnError)
@@ -772,7 +772,7 @@ func cloudGrant(arguments []string) error {
 	confirm := flags.Bool("confirm", false, "confirm complete replacement of this provider grant")
 	jsonOutput := flags.Bool("json", false, "emit JSON")
 	if err := flags.Parse(arguments[1:]); err != nil || flags.NArg() != 0 || !*confirm || *classesValue == "" {
-		return errors.New("usage: zsh-git-inlay cloud grant openai --classes <comma-separated-classes> --confirm [--json]")
+		return errors.New("usage: zsh-git-good cloud grant openai --classes <comma-separated-classes> --confirm [--json]")
 	}
 	classes := make([]cloud.ContextClass, 0)
 	for _, value := range strings.Split(*classesValue, ",") {
@@ -796,7 +796,7 @@ func cloudGrant(arguments []string) error {
 
 func cloudRevoke(arguments []string) error {
 	if len(arguments) != 1 || !cloud.ValidProvider(arguments[0]) {
-		return errors.New("usage: zsh-git-inlay cloud revoke openai")
+		return errors.New("usage: zsh-git-good cloud revoke openai")
 	}
 	store, err := cloudStore()
 	if err != nil {
@@ -814,7 +814,7 @@ func cloudPreview(arguments []string) error {
 	flags, cwdFlag, jsonOutput := commonFlags("cloud preview")
 	providerName := flags.String("provider", "", "cloud provider")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 || !cloud.ValidProvider(*providerName) {
-		return errors.New("usage: zsh-git-inlay cloud preview --provider openai [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good cloud preview --provider openai [--cwd <directory>] [--json]")
 	}
 	cwd, err := resolveCWD(*cwdFlag)
 	if err != nil {
@@ -882,7 +882,7 @@ func notifyCloudChanged(providerName string) {
 
 func learningCommand(arguments []string) error {
 	if len(arguments) == 0 {
-		return errors.New("usage: zsh-git-inlay learning {status|inspect|reset|disable|enable|export|import|clone-import}")
+		return errors.New("usage: zsh-git-good learning {status|inspect|reset|disable|enable|export|import|clone-import}")
 	}
 	switch arguments[0] {
 	case "status", "inspect":
@@ -898,14 +898,14 @@ func learningCommand(arguments []string) error {
 	case "prepare", "commit":
 		return learningHook(arguments[0], arguments[1:])
 	default:
-		return errors.New("usage: zsh-git-inlay learning {status|inspect|reset|disable|enable|export|import|clone-import}")
+		return errors.New("usage: zsh-git-good learning {status|inspect|reset|disable|enable|export|import|clone-import}")
 	}
 }
 
 func learningInspect(arguments []string) error {
 	flags, cwdFlag, jsonOutput := commonFlags("learning " + arguments[0])
 	if err := flags.Parse(arguments[1:]); err != nil || flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay learning " + arguments[0] + " [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good learning " + arguments[0] + " [--cwd <directory>] [--json]")
 	}
 	cwd, state, store, err := learningScope(*cwdFlag)
 	if err != nil {
@@ -939,7 +939,7 @@ func learningInspect(arguments []string) error {
 func learningMutate(arguments []string) error {
 	flags, cwdFlag, jsonOutput := commonFlags("learning " + arguments[0])
 	if err := flags.Parse(arguments[1:]); err != nil || flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay learning " + arguments[0] + " [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good learning " + arguments[0] + " [--cwd <directory>] [--json]")
 	}
 	cwd, state, store, err := learningScope(*cwdFlag)
 	if err != nil {
@@ -971,7 +971,7 @@ func learningMutate(arguments []string) error {
 func learningExport(arguments []string) error {
 	flags, cwdFlag, _ := commonFlags("learning export")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay learning export [--cwd <directory>]")
+		return errors.New("usage: zsh-git-good learning export [--cwd <directory>]")
 	}
 	_, state, store, err := learningScope(*cwdFlag)
 	if err != nil {
@@ -988,7 +988,7 @@ func learningImport(arguments []string) error {
 	flags, cwdFlag, jsonOutput := commonFlags("learning import")
 	filePath := flags.String("file", "", "exported learning profile")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 || *filePath == "" {
-		return errors.New("usage: zsh-git-inlay learning import --file <path> [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good learning import --file <path> [--cwd <directory>] [--json]")
 	}
 	cwd, state, store, err := learningScope(*cwdFlag)
 	if err != nil {
@@ -1015,7 +1015,7 @@ func learningCloneImport(arguments []string) error {
 	from := flags.String("from", "", "local clone to import from")
 	confirm := flags.Bool("confirm", false, "confirm matching-clone profile import")
 	if err := flags.Parse(arguments); err != nil || flags.NArg() != 0 || *from == "" {
-		return errors.New("usage: zsh-git-inlay learning clone-import --from <directory> --confirm [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good learning clone-import --from <directory> --confirm [--cwd <directory>] [--json]")
 	}
 	cwd, target, store, err := learningScope(*cwdFlag)
 	if err != nil {
@@ -1131,7 +1131,7 @@ func notifyLearningChanged(cwd string) {
 
 func activityCommand(arguments []string) error {
 	if len(arguments) == 0 {
-		return errors.New("usage: zsh-git-inlay activity {inspect|clear} [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good activity {inspect|clear} [--cwd <directory>] [--json]")
 	}
 	switch arguments[0] {
 	case "inspect", "clear":
@@ -1141,7 +1141,7 @@ func activityCommand(arguments []string) error {
 	case "git-state":
 		return activityGitState(arguments[1:])
 	default:
-		return errors.New("usage: zsh-git-inlay activity {inspect|clear} [--cwd <directory>] [--json]")
+		return errors.New("usage: zsh-git-good activity {inspect|clear} [--cwd <directory>] [--json]")
 	}
 }
 
@@ -1202,7 +1202,7 @@ func activityEmit(arguments []string) error {
 		return err
 	}
 	if flags.NArg() != 0 || *kind == "" {
-		return errors.New("usage: zsh-git-inlay activity emit --cwd <directory> --source <source> --kind <kind> [--sensitivity <public|private|secret>] [--data key=value]")
+		return errors.New("usage: zsh-git-good activity emit --cwd <directory> --source <source> --kind <kind> [--sensitivity <public|private|secret>] [--data key=value]")
 	}
 	enabled, err := activityEnabled()
 	if err != nil || !enabled {
@@ -1247,7 +1247,7 @@ func activityGitState(arguments []string) error {
 		if err != nil {
 			return err
 		}
-		return errors.New("usage: zsh-git-inlay activity git-state [--cwd <directory>]")
+		return errors.New("usage: zsh-git-good activity git-state [--cwd <directory>]")
 	}
 	enabled, err := activityEnabled()
 	if err != nil || !enabled {

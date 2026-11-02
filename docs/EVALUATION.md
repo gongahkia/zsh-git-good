@@ -18,14 +18,14 @@ Run the deterministic CI corpus with:
 
 ```zsh
 make test-eval
-zsh-git-inlay evaluate --fixtures --json
-zsh-git-inlay evaluate --fixtures --partition development --json
-zsh-git-inlay evaluate --fixtures --partition held-out --json
+zsh-git-good evaluate --fixtures --json
+zsh-git-good evaluate --fixtures --partition development --json
+zsh-git-good evaluate --fixtures --partition held-out --json
 ```
 
 The command writes a JSON report and a Markdown report to
-`$XDG_STATE_HOME/zsh-git-inlay/evaluations` (or the private fallback
-`~/.local/state/zsh-git-inlay/evaluations`). `ZSH_GIT_INLAY_STATE_DIR` is a
+`$XDG_STATE_HOME/zsh-git-good/evaluations` (or the private fallback
+`~/.local/state/zsh-git-good/evaluations`). `ZSH_GIT_GOOD_STATE_DIR` is a
 test/troubleshooting override. Reports and their parent directories use private
 permissions. `--output-dir` is available when an explicitly chosen private
 location is required.
@@ -33,7 +33,7 @@ location is required.
 To replay a local repository without copying its history into this repository:
 
 ```zsh
-zsh-git-inlay evaluate --repo /absolute/path/to/repository --limit 50 --json
+zsh-git-good evaluate --repo /absolute/path/to/repository --limit 50 --json
 ```
 
 The runner selects non-merge commits with one parent, reads the parent tree
@@ -166,8 +166,8 @@ for example `--provider deterministic-baseline` and `--provider deterministic`.
 Then run:
 
 ```zsh
-zsh-git-inlay review prepare --left /private/baseline.json --right /private/new.json --output-dir /private/review
-zsh-git-inlay review summarize --packet /private/review/packet.json --key /private/review/key.json --ratings /private/review/ratings.json
+zsh-git-good review prepare --left /private/baseline.json --right /private/new.json --output-dir /private/review
+zsh-git-good review summarize --packet /private/review/packet.json --key /private/review/key.json --ratings /private/review/ratings.json
 ```
 
 Give only `packet.json` to the reviewer; keep `key.json` separate until scoring.

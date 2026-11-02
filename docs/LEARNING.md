@@ -6,7 +6,7 @@ caches remain worktree-specific. It reranks only candidates that have already
 passed repository policy and grounding. It never fine-tunes a model, creates a
 suggestion frontend, authorizes a rejected candidate, or changes a commit.
 
-Profiles live below `$XDG_DATA_HOME/zsh-git-inlay/learning` (or the configured
+Profiles live below `$XDG_DATA_HOME/zsh-git-good/learning` (or the configured
 data-directory override), in private `0700` storage with one `0600`, versioned
 file per hashed repository identity. There are at most 128 profiles and each
 is capped at 16 KiB. A profile contains only bounded aggregate counts:
@@ -16,13 +16,13 @@ generic verbs. It contains no commit subject or body, source, diff, activity,
 provider state, remote URL, credential, or candidate text.
 
 ```zsh
-zsh-git-inlay learning status --cwd .
-zsh-git-inlay learning inspect --cwd . --json
-zsh-git-inlay learning disable --cwd .
-zsh-git-inlay learning enable --cwd .
-zsh-git-inlay learning reset --cwd .
-zsh-git-inlay learning export --cwd . > profile.json
-zsh-git-inlay learning import --cwd . --file profile.json
+zsh-git-good learning status --cwd .
+zsh-git-good learning inspect --cwd . --json
+zsh-git-good learning disable --cwd .
+zsh-git-good learning enable --cwd .
+zsh-git-good learning reset --cwd .
+zsh-git-good learning export --cwd . > profile.json
+zsh-git-good learning import --cwd . --file profile.json
 ```
 
 `reset` removes the current repository profile completely. `disable` takes
@@ -56,7 +56,7 @@ Grounding and repository policy run first. Learning then applies a stable,
 bounded reranking adjustment (local at most +6/-6 and historical at most
 +3/-3); it cannot introduce an invalid type/scope, bypass a required body,
 revive an ungrounded candidate, or out-rank policy validation.
-`zsh-git-inlay explain --json` shows applied aggregate reasons and scores. At
+`zsh-git-good explain --json` shows applied aggregate reasons and scores. At
 4096 observations, statistics decay rather than grow indefinitely.
 
 ## Explicit clone sharing
@@ -68,9 +68,9 @@ Userinfo, query parameters, and fragments are removed before comparison and no
 remote URL is retained.
 
 ```zsh
-zsh-git-inlay learning clone-import --cwd . --from /path/to/clone
+zsh-git-good learning clone-import --cwd . --from /path/to/clone
 # reports that explicit confirmation is required
-zsh-git-inlay learning clone-import --cwd . --from /path/to/clone --confirm
+zsh-git-good learning clone-import --cwd . --from /path/to/clone --confirm
 ```
 
 Only the exportable aggregate profile is copied. Activity, source summaries,

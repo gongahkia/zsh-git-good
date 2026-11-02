@@ -1,6 +1,6 @@
 # Repository message policy
 
-`.zsh-git-inlay.toml` is a small declarative repository message-policy file. It
+`.zsh-git-good.toml` is a small declarative repository message-policy file. It
 cannot choose a provider, endpoint, credential, cloud grant, permission,
 activity capture setting, output capture setting, hook, command, or redaction
 rule. Unknown keys are rejected before candidate preparation.
@@ -27,7 +27,7 @@ applies. A total candidate line longer than `line_length` is rejected.
 an uppercase first letter. Uppercase subject text remains shell-safe under the
 existing printable-message floor. Normal suggestions are subject-only, so a
 repository that requires a body intentionally gets no normal candidate. The
-user may instead invoke `zsh-git-inlay compose` for an already prepared
+user may instead invoke `zsh-git-good compose` for an already prepared
 candidate whose subject passed composition grounding eligibility: it proposes a
 policy-wrapped body, opens the configured editor, rechecks the exact staged
 state, and never creates a commit. A `forbid` policy rejects composition. See
@@ -43,6 +43,6 @@ built-in message and shell-safety floor
 ```
 
 Repository policy cannot modify a higher layer. Its content participates in the
-exact candidate fingerprint, and `zsh-git-inlay explain --json` reports the
+exact candidate fingerprint, and `zsh-git-good explain --json` reports the
 effective policy plus its provenance. A malformed policy produces an
 `unsupported` staged state rather than executing or partially applying it.

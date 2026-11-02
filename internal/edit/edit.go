@@ -404,7 +404,7 @@ func atomicWriteChecked(path string, data []byte, mode os.FileMode, check func()
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	file, err := os.CreateTemp(dir, ".zgi-edit-*")
+	file, err := os.CreateTemp(dir, ".zgg-edit-*")
 	if err != nil {
 		return err
 	}

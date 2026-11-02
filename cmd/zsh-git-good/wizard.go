@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 type wizard struct {

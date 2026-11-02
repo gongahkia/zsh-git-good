@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
 )
 
 func fixture(t *testing.T) (Manager, Options) {
@@ -47,7 +47,7 @@ func TestInstallRepeatUpgradeRemoveAndUndoWithSymlinkDotfile(t *testing.T) {
 	if info, err := os.Lstat(options.ShellFile); err != nil || info.Mode()&os.ModeSymlink == 0 {
 		t.Fatalf("shell link replaced: %v", err)
 	}
-	if info, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-inlay")); err != nil || info.Mode().Perm() != 0o755 {
+	if info, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-good")); err != nil || info.Mode().Perm() != 0o755 {
 		t.Fatalf("installed binary permissions: %v", err)
 	}
 	if repeated, err := manager.Install(options); err != nil || repeated.Changed {
@@ -64,7 +64,7 @@ func TestInstallRepeatUpgradeRemoveAndUndoWithSymlinkDotfile(t *testing.T) {
 	if _, err := manager.History.UndoWith(upgraded.Journal.ID, MergeUndo); err != nil {
 		t.Fatal(err)
 	}
-	if string(readFile(t, filepath.Join(options.Prefix, "bin/zsh-git-inlay"))) != "binary-v1" {
+	if string(readFile(t, filepath.Join(options.Prefix, "bin/zsh-git-good"))) != "binary-v1" {
 		t.Fatal("undo did not restore old binary")
 	}
 	file, err := os.OpenFile(target, os.O_APPEND|os.O_WRONLY, 0)
@@ -82,7 +82,7 @@ func TestInstallRepeatUpgradeRemoveAndUndoWithSymlinkDotfile(t *testing.T) {
 	if !bytes.Contains(data, []byte("# my later edit\n")) || bytes.Contains(data, []byte(BlockStart)) || !bytes.Contains(data, []byte("export MY_SETTING=original\n")) {
 		t.Fatalf("undo lost later edits or owned block remains: %s", data)
 	}
-	if _, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-inlay")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-good")); !os.IsNotExist(err) {
 		t.Fatalf("undo left installed binary: %v", err)
 	}
 	if _, err := manager.History.UndoWith(installed.Journal.ID, MergeUndo); err != nil {
@@ -111,7 +111,7 @@ func TestUninstallPreservesModifiedArtifactsAndUnrelatedFiles(t *testing.T) {
 	if _, err := manager.Install(options); err != nil {
 		t.Fatal(err)
 	}
-	plugin := filepath.Join(options.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")
+	plugin := filepath.Join(options.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")
 	if err := os.WriteFile(plugin, []byte("# user modified\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestUninstallPreservesModifiedArtifactsAndUnrelatedFiles(t *testing.T) {
 
 func TestLegacyMigrationAndMalformedBlocksRequireExplicitAction(t *testing.T) {
 	manager, options := fixture(t)
-	legacy := "# user\nsource '/old/zsh-git-inlay.plugin.zsh'\n# other settings\n"
+	legacy := "# user\nsource '/old/zsh-git-good.plugin.zsh'\n# other settings\n"
 	if err := os.WriteFile(options.ShellFile, []byte(legacy), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestLegacyMigrationAndMalformedBlocksRequireExplicitAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(readFile(t, options.ShellFile), []byte("# zsh-git-inlay migrated: source '/old/")) {
+	if !bytes.Contains(readFile(t, options.ShellFile), []byte("# zsh-git-good migrated: source '/old/")) {
 		t.Fatal("migration discarded original source line")
 	}
 	if _, err := manager.History.Undo(installed.Journal.ID); err != nil {
@@ -189,7 +189,7 @@ func TestUninstallNeverDeletesASymlinkArtifactTarget(t *testing.T) {
 	if _, err := manager.Install(options); err != nil {
 		t.Fatal(err)
 	}
-	binary := filepath.Join(options.Prefix, "bin/zsh-git-inlay")
+	binary := filepath.Join(options.Prefix, "bin/zsh-git-good")
 	external := filepath.Join(filepath.Dir(options.Binary), "external-binary")
 	if err := os.Rename(binary, external); err != nil {
 		t.Fatal(err)
@@ -216,7 +216,7 @@ func TestSetupAndPreferenceChangeAreOneValidatedUndoableTransaction(t *testing.T
 	if _, err := manager.Install(options); err == nil {
 		t.Fatal("invalid wizard configuration passed installation")
 	}
-	if _, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-inlay")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Prefix, "bin/zsh-git-good")); !os.IsNotExist(err) {
 		t.Fatal("invalid wizard configuration partly installed files")
 	}
 	options.Configuration.Data = []byte("# preferences\n[commit]\ncapitalization = 'sentence'\n")

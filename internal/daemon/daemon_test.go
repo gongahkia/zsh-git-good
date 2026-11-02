@@ -13,16 +13,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/activity"
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/cloud"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/grounding"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/learning"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
+	"github.com/gongahkia/zsh-git-good/internal/activity"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/cloud"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/grounding"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/learning"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
 )
 
 func TestObservePublishesAtomicScopedCandidates(t *testing.T) {
@@ -293,7 +293,7 @@ func TestObserveRefreshesChangedProviderConfiguration(t *testing.T) {
 	server, _ := testServer(t)
 	defer server.Close()
 	configRoot := t.TempDir()
-	path := filepath.Join(configRoot, "zsh-git-inlay", "config.toml")
+	path := filepath.Join(configRoot, "zsh-git-good", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -535,8 +535,8 @@ func TestConcurrentSessionsAndRapidIndexChanges(t *testing.T) {
 
 func TestServeExitsAfterIdleTimeout(t *testing.T) {
 	runtimeDir, cacheDir := filepath.Join(t.TempDir(), "runtime"), filepath.Join(t.TempDir(), "cache")
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", runtimeDir)
-	t.Setenv("ZSH_GIT_INLAY_CACHE_DIR", cacheDir)
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", runtimeDir)
+	t.Setenv("ZSH_GIT_GOOD_CACHE_DIR", cacheDir)
 	settings := config.Default()
 	settings.IdleTimeout = 80 * time.Millisecond
 	done := make(chan error, 1)

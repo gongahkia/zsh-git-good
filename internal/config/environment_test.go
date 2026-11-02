@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/gongahkia/zsh-git-inlay/internal/testenv"
+	"github.com/gongahkia/zsh-git-good/internal/testenv"
 	"os"
 	"testing"
 )

@@ -8,18 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 func adminFixture(t *testing.T) (string, []string) {
 	t.Helper()
 	dir := t.TempDir()
 	for key, value := range map[string]string{
-		"ZSH_GIT_INLAY_CONFIG":      filepath.Join(dir, "config/zsh-git-inlay/config.toml"),
-		"ZSH_GIT_INLAY_DATA_DIR":    filepath.Join(dir, "data/zsh-git-inlay"),
-		"ZSH_GIT_INLAY_STATE_DIR":   filepath.Join(dir, "state/zsh-git-inlay"),
-		"ZSH_GIT_INLAY_CACHE_DIR":   filepath.Join(dir, "cache/zsh-git-inlay"),
-		"ZSH_GIT_INLAY_RUNTIME_DIR": filepath.Join(dir, "run/zsh-git-inlay"),
+		"ZSH_GIT_GOOD_CONFIG":      filepath.Join(dir, "config/zsh-git-good/config.toml"),
+		"ZSH_GIT_GOOD_DATA_DIR":    filepath.Join(dir, "data/zsh-git-good"),
+		"ZSH_GIT_GOOD_STATE_DIR":   filepath.Join(dir, "state/zsh-git-good"),
+		"ZSH_GIT_GOOD_CACHE_DIR":   filepath.Join(dir, "cache/zsh-git-good"),
+		"ZSH_GIT_GOOD_RUNTIME_DIR": filepath.Join(dir, "run/zsh-git-good"),
 	} {
 		t.Setenv(key, value)
 	}
@@ -27,7 +27,7 @@ func adminFixture(t *testing.T) (string, []string) {
 	if err := os.MkdirAll(filepath.Join(source, ".build"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for path, content := range map[string]string{filepath.Join(source, ".build/zsh-git-inlay"): "#!/bin/sh\nexit 0\n", filepath.Join(source, "zsh-git-inlay.plugin.zsh"): "# test plugin\n", filepath.Join(source, "THIRD_PARTY_NOTICES"): "test notice\n", filepath.Join(dir, "dependency.zsh"): "# test dependency\n"} {
+	for path, content := range map[string]string{filepath.Join(source, ".build/zsh-git-good"): "#!/bin/sh\nexit 0\n", filepath.Join(source, "zsh-git-good.plugin.zsh"): "# test plugin\n", filepath.Join(source, "THIRD_PARTY_NOTICES"): "test notice\n", filepath.Join(dir, "dependency.zsh"): "# test dependency\n"} {
 		if err := os.WriteFile(path, []byte(content), 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -64,7 +64,7 @@ func TestAdminInstallTuneRemoveAndRestore(t *testing.T) {
 	if info, err := os.Stat(removed.RecoveryHelper); err != nil || info.Mode().Perm() != 0o700 {
 		t.Fatalf("private recovery helper: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-inlay")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-good")); !os.IsNotExist(err) {
 		t.Fatal("remove left installed executable")
 	}
 	if _, err := config.Load(); err != nil {
@@ -73,13 +73,13 @@ func TestAdminInstallTuneRemoveAndRestore(t *testing.T) {
 	if _, err := captureCommandOutput(func() error { return run([]string{"undo", removed.Transaction}) }); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-inlay")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-good")); err != nil {
 		t.Fatalf("undo did not restore installed executable: %v", err)
 	}
 	if _, err := captureCommandOutput(func() error { return run([]string{"uninstall", "--purge-local-data", "--json"}) }); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(os.Getenv("ZSH_GIT_INLAY_DATA_DIR")); !os.IsNotExist(err) {
+	if _, err := os.Stat(os.Getenv("ZSH_GIT_GOOD_DATA_DIR")); !os.IsNotExist(err) {
 		t.Fatal("explicit purge left local data")
 	}
 	if _, err := os.Stat(removed.RecoveryHelper); !os.IsNotExist(err) {
@@ -113,7 +113,7 @@ func TestInvalidProviderBatchLeavesInstallationUntouched(t *testing.T) {
 	if _, err := captureCommandOutput(func() error { return run(args) }); err == nil {
 		t.Fatal("incomplete provider selection installed")
 	}
-	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-inlay")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "prefix with spaces/bin/zsh-git-good")); !os.IsNotExist(err) {
 		t.Fatal("invalid provider selection partly installed")
 	}
 }
@@ -123,7 +123,7 @@ func TestSetupRepairUsesVerifiedBackupInsteadOfTheBrokenInstalledPlugin(t *testi
 	if _, err := captureCommandOutput(func() error { return run(args) }); err != nil {
 		t.Fatal(err)
 	}
-	plugin := filepath.Join(dir, "prefix with spaces/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")
+	plugin := filepath.Join(dir, "prefix with spaces/share/zsh-git-good/zsh-git-good.plugin.zsh")
 	if err := os.WriteFile(plugin, []byte("# user-broken plugin\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 const DefaultOllamaURL = "http://127.0.0.1:11434"

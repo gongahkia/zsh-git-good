@@ -17,7 +17,7 @@ func shellEnvironment(t *testing.T, directory string) []string {
 	}
 	environment := []string{}
 	for _, entry := range os.Environ() {
-		if !strings.HasPrefix(entry, "HOME=") && !strings.HasPrefix(entry, "ZDOTDIR=") && !strings.HasPrefix(entry, "ZSH_GIT_INLAY_") {
+		if !strings.HasPrefix(entry, "HOME=") && !strings.HasPrefix(entry, "ZDOTDIR=") && !strings.HasPrefix(entry, "ZSH_GIT_GOOD_") {
 			environment = append(environment, entry)
 		}
 	}
@@ -47,10 +47,10 @@ func TestInteractiveProbesObserveActualPluginAndStrictBrokenConfigFallback(t *te
 	}
 	// A failing config helper exercises the plugin's safe binding defaults in
 	// a user's strict shell without reading the maintainer's configuration.
-	if err := os.WriteFile(filepath.Join(bin, "zsh-git-inlay"), []byte("#!/bin/sh\nexit 1\n"), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(bin, "zsh-git-good"), []byte("#!/bin/sh\nexit 1\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	plugin, err := filepath.Abs("../../zsh-git-inlay.plugin.zsh")
+	plugin, err := filepath.Abs("../../zsh-git-good.plugin.zsh")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,10 +60,10 @@ func TestInteractiveProbesObserveActualPluginAndStrictBrokenConfigFallback(t *te
 	}
 	for _, login := range []bool{false, true} {
 		report, err := Probe(context.Background(), login, shellEnvironment(t, dir))
-		if err != nil || !report.Loaded || !report.DependencyLoaded || !report.Async || report.PluginContract != PluginContract || len(report.Strategies) == 0 || report.Strategies[0] != "git-inlay" || report.CycleBinding != "^Xg" {
+		if err != nil || !report.Loaded || !report.DependencyLoaded || !report.Async || report.PluginContract != PluginContract || len(report.Strategies) == 0 || report.Strategies[0] != "git-good" || report.CycleBinding != "^Xg" {
 			t.Fatalf("actual shell activation: %+v %v", report, err)
 		}
-		if !strings.HasSuffix(report.PluginSource, "zsh-git-inlay.plugin.zsh") || !strings.Contains(report.Bindings["emacs"], "zsh-git-inlay-cycle") || report.Binary != filepath.Join(bin, "zsh-git-inlay") {
+		if !strings.HasSuffix(report.PluginSource, "zsh-git-good.plugin.zsh") || !strings.Contains(report.Bindings["emacs"], "zsh-git-good-cycle") || report.Binary != filepath.Join(bin, "zsh-git-good") {
 			t.Fatalf("probe concealed wrong source/binding/PATH: %+v", report)
 		}
 	}

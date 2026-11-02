@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 const (
@@ -145,7 +145,7 @@ func Snapshot(ctx context.Context, cwd string) (State, error) {
 // writeTree gives Git a private copy of the index because write-tree may add a
 // cache-tree extension to the supplied index. The real index remains read-only.
 func writeTree(ctx context.Context, cwd, gitDir string) (string, error) {
-	temporaryDir, err := os.MkdirTemp("", "zsh-git-inlay-index-")
+	temporaryDir, err := os.MkdirTemp("", "zsh-git-good-index-")
 	if err != nil {
 		return "", fmt.Errorf("create private index copy: %w", err)
 	}

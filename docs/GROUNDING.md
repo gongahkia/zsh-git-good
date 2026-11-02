@@ -45,8 +45,8 @@ daemon nor compiles context, generates, or asks an interactive question.
 Use the administrative diagnostic after candidates are ready:
 
 ```zsh
-zsh-git-inlay explain --cwd .
-zsh-git-inlay explain --cwd . --json
+zsh-git-good explain --cwd .
+zsh-git-good explain --cwd . --json
 ```
 
 It reports candidate text already available through `candidates`, grounding

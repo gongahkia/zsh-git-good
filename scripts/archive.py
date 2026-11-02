@@ -18,7 +18,7 @@ def archive(source, output, members):
                     path = source / name
                     info = tarfile.TarInfo(name)
                     info.size = path.stat().st_size
-                    info.mode = 0o755 if name == "zsh-git-inlay" else 0o644
+                    info.mode = 0o755 if name == "zsh-git-good" else 0o644
                     info.uid = info.gid = 0
                     info.uname = info.gname = "root"
                     info.mtime = 946684800

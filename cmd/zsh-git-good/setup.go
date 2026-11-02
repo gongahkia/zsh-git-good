@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/setup"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/setup"
 )
 
 func setupCommand(arguments []string) error {
@@ -38,7 +38,7 @@ func setupCommand(arguments []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("usage: zsh-git-inlay setup [--check] [--demo] [--json]")
+		return errors.New("usage: zsh-git-good setup [--check] [--demo] [--json]")
 	}
 	binary, err := os.Executable()
 	if err != nil {
@@ -94,9 +94,9 @@ func setupCommand(arguments []string) error {
 }
 
 func setupHelp() error {
-	fmt.Println(`usage: zsh-git-inlay setup --wizard
-       zsh-git-inlay setup {install|upgrade|customize|repair} [options]
-       zsh-git-inlay setup [--check] [--demo] [--json]
+	fmt.Println(`usage: zsh-git-good setup --wizard
+       zsh-git-good setup {install|upgrade|customize|repair} [options]
+       zsh-git-good setup [--check] [--demo] [--json]
 
 Wizard: guided provider/model, generation budgets, message style/scopes, count,
 key bindings, local learning and backed-up install/repair/removal choices.

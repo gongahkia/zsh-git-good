@@ -44,22 +44,22 @@ two lines to add after loading `zsh-autosuggestions`:
 
 ```zsh
 path=("$HOME/.local/bin" $path)
-source "$HOME/.local/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+source "$HOME/.local/share/zsh-git-good/zsh-git-good.plugin.zsh"
 ```
 
 Start a fresh Zsh session, then verify dependency/load order and runtime paths:
 
 ```zsh
-zsh-git-inlay version --json
-zsh-git-inlay doctor --json
+zsh-git-good version --json
+zsh-git-good doctor --json
 ```
 
 ## Upgrade and uninstall
 
 To upgrade, check out the desired reviewed source revision, run `make build`,
 and rerun the same install command. The installer replaces only
-`<prefix>/bin/zsh-git-inlay` and
-`<prefix>/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh`; it does not touch
+`<prefix>/bin/zsh-git-good` and
+`<prefix>/share/zsh-git-good/zsh-git-good.plugin.zsh`; it does not touch
 Ollama models, repository data, or other prefix contents.
 
 Before uninstalling, remove the source line from `.zshrc`. The uninstaller
@@ -78,7 +78,7 @@ roots, make that destructive choice explicit:
 sh scripts/uninstall.sh --prefix "$HOME/.local" --purge-local-data
 ```
 
-Custom `ZSH_GIT_INLAY_*` directory overrides are never guessed or removed by
+Custom `ZSH_GIT_GOOD_*` directory overrides are never guessed or removed by
 the script.
 
 ## Reproducible snapshots
@@ -116,7 +116,7 @@ managed-model data.
 ```zsh
 sha256sum -c checksums.txt
 sh scripts/install-release.sh \
-  --archive zsh-git-inlay_0.1.0-rc.1_linux-amd64.tar.gz \
+  --archive zsh-git-good_0.1.0-rc.1_linux-amd64.tar.gz \
   --prefix "$HOME/.local"
 ```
 
@@ -133,13 +133,13 @@ weights, cached activity, configuration, nor local evaluation reports.
 
 ## Setup verification and disposable demo
 
-After source/archive installation, `zsh-git-inlay setup` prints correctly quoted
+After source/archive installation, `zsh-git-good setup` prints correctly quoted
 source lines without editing `.zshrc`. Dependency discovery honors
 `ZSH_AUTOSUGGESTIONS_SOURCE` and common Linux/Intel Homebrew/Apple Silicon
 Homebrew paths. The plugin is discovered relative to the executable, including
 Homebrew symlinks and the source build directory.
 
-Run `zsh-git-inlay setup --check --demo` to source the installed files in a
+Run `zsh-git-good setup --check --demo` to source the installed files in a
 clean Zsh, verify registration and version, and prepare a candidate through the
 actual daemon/socket/lookup path in a disposable repository. The demo isolates
 config, cache, activity/learning data and runtime; it uses deterministic

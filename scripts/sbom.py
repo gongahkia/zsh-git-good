@@ -17,7 +17,7 @@ def inventory(source, version):
         modules.append(module)
         output = output.lstrip()[end:]
     packages, relationships = [], []
-    main_id = "SPDXRef-Package-zsh-git-inlay"
+    main_id = "SPDXRef-Package-zsh-git-good"
     for index, module in enumerate(sorted(modules, key=lambda item: (not item.get("Main", False), item["Path"]))):
         main = module.get("Main", False)
         identifier = main_id if main else f"SPDXRef-Dependency-{index}"
@@ -35,9 +35,9 @@ def inventory(source, version):
         relationships.append({"spdxElementId": "SPDXRef-DOCUMENT" if main else main_id, "relationshipType": "DESCRIBES" if main else "DEPENDS_ON", "relatedSpdxElement": identifier})
     return {
         "spdxVersion": "SPDX-2.3", "dataLicense": "CC0-1.0", "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"zsh-git-inlay-{version}",
-        "documentNamespace": f"https://github.com/gongahkia/zsh-git-inlay/spdx/{version}",
-        "creationInfo": {"creators": ["Tool: zsh-git-inlay release snapshot"], "created": "1970-01-01T00:00:00Z"},
+        "name": f"zsh-git-good-{version}",
+        "documentNamespace": f"https://github.com/gongahkia/zsh-git-good/spdx/{version}",
+        "creationInfo": {"creators": ["Tool: zsh-git-good release snapshot"], "created": "1970-01-01T00:00:00Z"},
         "packages": packages, "relationships": relationships,
     }
 

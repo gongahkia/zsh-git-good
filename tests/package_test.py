@@ -19,7 +19,7 @@ class Packages(unittest.TestCase):
         dependency = next(package for package in document["packages"] if package["name"] == "github.com/pelletier/go-toml/v2")
         self.assertEqual(dependency["licenseDeclared"], "MIT")
         self.assertEqual(dependency["versionInfo"], "v2.4.3")
-        self.assertIn({"spdxElementId": "SPDXRef-Package-zsh-git-inlay", "relationshipType": "DEPENDS_ON", "relatedSpdxElement": dependency["SPDXID"]}, document["relationships"])
+        self.assertIn({"spdxElementId": "SPDXRef-Package-zsh-git-good", "relationshipType": "DEPENDS_ON", "relatedSpdxElement": dependency["SPDXID"]}, document["relationships"])
 
     def test_formula_requires_license_and_checks_all_archives(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -29,7 +29,7 @@ class Packages(unittest.TestCase):
             (root / "LICENSE").write_text("fixture license for test only\n")
             records = []
             for target in ("darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64"):
-                name = f"zsh-git-inlay_v1.2.3_{target}.tar.gz"
+                name = f"zsh-git-good_v1.2.3_{target}.tar.gz"
                 with tarfile.open(root / name, "w:gz") as archive:
                     archive.add(root / "LICENSE", arcname="LICENSE")
                 digest = hashlib.sha256((root / name).read_bytes()).hexdigest()
@@ -38,7 +38,7 @@ class Packages(unittest.TestCase):
             formula = prepare(root, "v1.2.3", "MIT", root)
             self.assertEqual(formula.count('sha256 "'), 4)
             self.assertIn('"setup", "--check"', formula)
-            (root / "zsh-git-inlay_v1.2.3_darwin-arm64.tar.gz").write_bytes(b"tampered")
+            (root / "zsh-git-good_v1.2.3_darwin-arm64.tar.gz").write_bytes(b"tampered")
             with self.assertRaises(ValueError):
                 prepare(root, "v1.2.3", "MIT", root)
             with self.assertRaises(ValueError):
@@ -52,12 +52,12 @@ class Packages(unittest.TestCase):
             for index in (1, 2):
                 source = root / f"source-{index}"
                 source.mkdir()
-                for name in ("zsh-git-inlay", "zsh-git-inlay.plugin.zsh"):
+                for name in ("zsh-git-good", "zsh-git-good.plugin.zsh"):
                     path = source / name
                     path.write_bytes(b"fixture content")
                     os.utime(path, (index * 1000, index * 1000))
                 output = root / f"archive-{index}.tar.gz"
-                archiver(source, output, ["zsh-git-inlay", "zsh-git-inlay.plugin.zsh"])
+                archiver(source, output, ["zsh-git-good", "zsh-git-good.plugin.zsh"])
                 outputs.append(output)
             self.assertEqual(outputs[0].read_bytes(), outputs[1].read_bytes())
             with tarfile.open(outputs[0]) as bundle:
@@ -70,23 +70,23 @@ class Packages(unittest.TestCase):
             root = Path(directory)
             source = root / "source"
             (source / ".build").mkdir(parents=True)
-            binary = source / ".build/zsh-git-inlay"
+            binary = source / ".build/zsh-git-good"
             binary.write_text("#!/bin/sh\nexit 0\n")
             binary.chmod(0o755)
-            (source / "zsh-git-inlay.plugin.zsh").write_text("# fixture\n")
+            (source / "zsh-git-good.plugin.zsh").write_text("# fixture\n")
             (source / "LICENSE").write_text("fixture selected license\n")
             (source / "THIRD_PARTY_NOTICES").write_text("fixture dependency license\n")
             prefix = root / "prefix"
             subprocess.run(["sh", str(PROJECT / "scripts/install.sh"), "--source", str(source), "--prefix", str(prefix)], check=True, capture_output=True)
-            self.assertEqual((prefix / "share/zsh-git-inlay/LICENSE").read_text(), "fixture selected license\n")
-            self.assertEqual((prefix / "share/zsh-git-inlay/THIRD_PARTY_NOTICES").read_text(), "fixture dependency license\n")
+            self.assertEqual((prefix / "share/zsh-git-good/LICENSE").read_text(), "fixture selected license\n")
+            self.assertEqual((prefix / "share/zsh-git-good/THIRD_PARTY_NOTICES").read_text(), "fixture dependency license\n")
 
     def test_binary_install_verifies_digest_before_writing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             archive_path = root / "fixture.tar.gz"
             with tarfile.open(archive_path, "w:gz") as archive:
-                for name in ("zsh-git-inlay", "zsh-git-inlay.plugin.zsh", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY_NOTICES"):
+                for name in ("zsh-git-good", "zsh-git-good.plugin.zsh", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY_NOTICES"):
                     content = b"fixture content\n"
                     member = tarfile.TarInfo(name)
                     member.size = len(content)
@@ -104,12 +104,12 @@ class Packages(unittest.TestCase):
             self.assertFalse(prefix.exists())
             digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
             subprocess.run(args + [digest], env=environment, check=True, capture_output=True)
-            self.assertEqual((prefix / "bin/zsh-git-inlay").read_bytes(), b"fixture content\n")
-            self.assertEqual((prefix / "share/zsh-git-inlay/LICENSE").read_bytes(), b"fixture content\n")
-            self.assertEqual((prefix / "share/zsh-git-inlay/THIRD_PARTY_NOTICES").read_bytes(), b"fixture content\n")
+            self.assertEqual((prefix / "bin/zsh-git-good").read_bytes(), b"fixture content\n")
+            self.assertEqual((prefix / "share/zsh-git-good/LICENSE").read_bytes(), b"fixture content\n")
+            self.assertEqual((prefix / "share/zsh-git-good/THIRD_PARTY_NOTICES").read_bytes(), b"fixture content\n")
             subprocess.run(["sh", str(PROJECT / "scripts/uninstall.sh"), "--prefix", str(prefix)], env=environment, check=True, capture_output=True)
-            self.assertFalse((prefix / "share/zsh-git-inlay/LICENSE").exists())
-            self.assertFalse((prefix / "share/zsh-git-inlay/THIRD_PARTY_NOTICES").exists())
+            self.assertFalse((prefix / "share/zsh-git-good/LICENSE").exists())
+            self.assertFalse((prefix / "share/zsh-git-good/THIRD_PARTY_NOTICES").exists())
 
 
 if __name__ == "__main__":

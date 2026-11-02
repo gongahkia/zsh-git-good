@@ -21,7 +21,7 @@ func Isolate() (func(), error) {
 		_ = json.Unmarshal(output, &compilerPaths)
 	}
 	cancel()
-	root, err := os.MkdirTemp("/tmp", "zgi-unit-")
+	root, err := os.MkdirTemp("/tmp", "zgg-unit-")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func Isolate() (func(), error) {
 	// writes outside their temporary repositories, even with a private HOME.
 	for _, entry := range os.Environ() {
 		key, _, _ := strings.Cut(entry, "=")
-		if strings.HasPrefix(key, "GIT_") || strings.HasPrefix(key, "ZSH_GIT_INLAY_") || key == "ZDOTDIR" || key == "OPENAI_API_KEY" {
+		if strings.HasPrefix(key, "GIT_") || strings.HasPrefix(key, "ZSH_GIT_GOOD_") || key == "ZDOTDIR" || key == "OPENAI_API_KEY" {
 			remember(key)
 			if err := os.Unsetenv(key); err != nil {
 				return nil, err

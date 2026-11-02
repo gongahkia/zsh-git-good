@@ -5,20 +5,20 @@ does not generate or render commit messages, call a provider, scan buffers, or
 maintain its own context store. The existing Zsh/autosuggestions flow remains
 the only suggestion frontend.
 
-It requires Neovim 0.10 or later and the `zsh-git-inlay` executable on `PATH`.
+It requires Neovim 0.10 or later and the `zsh-git-good` executable on `PATH`.
 Activity must be granted first; without it, the local emitter exits before
 reading Git state and the daemon retains no event.
 
 ```zsh
-zsh-git-inlay permissions enable activity
+zsh-git-good permissions enable activity
 ```
 
 Manual setup, after adding this repository to Neovim's runtime path:
 
 ```lua
-vim.opt.rtp:append("/absolute/path/to/zsh-git-inlay")
+vim.opt.rtp:append("/absolute/path/to/zsh-git-good")
 
-require("zsh-git-inlay").setup({
+require("zsh-git-good").setup({
   file_events = true,
   diagnostics = true,
 })
@@ -26,7 +26,7 @@ require("zsh-git-inlay").setup({
 
 The current source and Zsh release installers install only the executable and
 Zsh plugin. Release archives deliberately omit this optional adapter, so an
-archive installation does not make `require("zsh-git-inlay")` available. Use a
+archive installation does not make `require("zsh-git-good")` available. Use a
 reviewed source checkout on Neovim's runtime path if this existing activity
 producer is wanted.
 
@@ -34,9 +34,9 @@ For `lazy.nvim`:
 
 ```lua
 {
-  dir = "/absolute/path/to/zsh-git-inlay",
+  dir = "/absolute/path/to/zsh-git-good",
   config = function()
-    require("zsh-git-inlay").setup()
+    require("zsh-git-good").setup()
   end,
 }
 ```
@@ -45,9 +45,9 @@ For `packer.nvim`:
 
 ```lua
 use({
-  "/absolute/path/to/zsh-git-inlay",
+  "/absolute/path/to/zsh-git-good",
   config = function()
-    require("zsh-git-inlay").setup()
+    require("zsh-git-good").setup()
   end,
 })
 ```
@@ -55,8 +55,8 @@ use({
 Use an explicit executable path when necessary:
 
 ```lua
-require("zsh-git-inlay").setup({
-  executable = "/home/me/.local/bin/zsh-git-inlay",
+require("zsh-git-good").setup({
+  executable = "/home/me/.local/bin/zsh-git-good",
   max_diagnostics = 1024,
 })
 ```
@@ -71,10 +71,10 @@ verifies the repository/worktree identity. Event failure is ignored by Neovim.
 Disable and remove all adapter autocmds without touching other configuration:
 
 ```lua
-require("zsh-git-inlay").disable()
+require("zsh-git-good").disable()
 ```
 
-Run `:checkhealth zsh-git-inlay` to verify the executable and activity-grant
+Run `:checkhealth zsh-git-good` to verify the executable and activity-grant
 status. The checked-in headless test is run with `make test` on this host; it
 uses Neovim 0.11.6 and proves the adapter emits bounded kinds/counts, omits
 diagnostic text, contains emitter failures, and stops after `disable()`. On a

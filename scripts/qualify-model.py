@@ -32,7 +32,7 @@ def run_qualification(args):
     config = args.output_dir / "config.toml"
     config.write_text(f'[provider]\nname = "ollama"\nmodel = {json.dumps(args.model)}\ntimeout = "{args.warm_timeout}s"\nfallback = "none"\n[ollama]\ncontext_tokens = {args.context_tokens}\noutput_tokens = {args.output_tokens}\ncold_timeout = "{args.cold_timeout}s"\nkeep_alive = "{args.keep_alive}s"\n[daemon]\nmax_generation_concurrency = 1\n')
     config.chmod(0o600)
-    environment = dict(os.environ, ZSH_GIT_INLAY_CONFIG=str(config.resolve()))
+    environment = dict(os.environ, ZSH_GIT_GOOD_CONFIG=str(config.resolve()))
     identity = None
     result = {"status": "operational_checks_pending", "human_review_required": True, "model": args.model, "corpus": args.corpus, "runs": []}
     try:
@@ -72,7 +72,7 @@ def run_qualification(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--binary", type=Path, default=Path(".build/zsh-git-inlay"))
+    parser.add_argument("--binary", type=Path, default=Path(".build/zsh-git-good"))
     parser.add_argument("--model", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--corpus", choices=("v2", "v3"), default="v3")

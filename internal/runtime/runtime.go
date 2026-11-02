@@ -10,11 +10,11 @@ import (
 )
 
 func Dir() (string, error) {
-	if override := os.Getenv("ZSH_GIT_INLAY_RUNTIME_DIR"); override != "" {
+	if override := os.Getenv("ZSH_GIT_GOOD_RUNTIME_DIR"); override != "" {
 		return ensurePrivate(override)
 	}
 	if base := os.Getenv("XDG_RUNTIME_DIR"); base != "" {
-		if path, err := ensurePrivate(filepath.Join(base, "zsh-git-inlay")); err == nil {
+		if path, err := ensurePrivate(filepath.Join(base, "zsh-git-good")); err == nil {
 			return path, nil
 		}
 	}
@@ -26,7 +26,7 @@ func Dir() (string, error) {
 		}
 		base = filepath.Join(home, ".cache")
 	}
-	return ensurePrivate(filepath.Join(base, "zsh-git-inlay", "runtime"))
+	return ensurePrivate(filepath.Join(base, "zsh-git-good", "runtime"))
 }
 
 func CacheDir() (string, error) {
@@ -39,7 +39,7 @@ func CacheDir() (string, error) {
 
 // CachePath resolves the location without changing the filesystem.
 func CachePath() (string, error) {
-	if override := os.Getenv("ZSH_GIT_INLAY_CACHE_DIR"); override != "" {
+	if override := os.Getenv("ZSH_GIT_GOOD_CACHE_DIR"); override != "" {
 		return filepath.Abs(override)
 	}
 	base := os.Getenv("XDG_CACHE_HOME")
@@ -50,7 +50,7 @@ func CachePath() (string, error) {
 		}
 		base = filepath.Join(home, ".cache")
 	}
-	return filepath.Abs(filepath.Join(base, "zsh-git-inlay", "cache"))
+	return filepath.Abs(filepath.Join(base, "zsh-git-good", "cache"))
 }
 
 // StateDir stores durable local administrative data such as evaluation reports.
@@ -64,7 +64,7 @@ func StateDir() (string, error) {
 
 // StatePath resolves the location without changing the filesystem.
 func StatePath() (string, error) {
-	if override := os.Getenv("ZSH_GIT_INLAY_STATE_DIR"); override != "" {
+	if override := os.Getenv("ZSH_GIT_GOOD_STATE_DIR"); override != "" {
 		return filepath.Abs(override)
 	}
 	base := os.Getenv("XDG_STATE_HOME")
@@ -75,7 +75,7 @@ func StatePath() (string, error) {
 		}
 		base = filepath.Join(home, ".local", "state")
 	}
-	return filepath.Abs(filepath.Join(base, "zsh-git-inlay"))
+	return filepath.Abs(filepath.Join(base, "zsh-git-good"))
 }
 
 func EvaluationDir() (string, error) {
@@ -97,7 +97,7 @@ func DataDir() (string, error) {
 
 // DataPath resolves the location without creating directories during lookup.
 func DataPath() (string, error) {
-	if override := os.Getenv("ZSH_GIT_INLAY_DATA_DIR"); override != "" {
+	if override := os.Getenv("ZSH_GIT_GOOD_DATA_DIR"); override != "" {
 		return filepath.Abs(override)
 	}
 	base := os.Getenv("XDG_DATA_HOME")
@@ -108,7 +108,7 @@ func DataPath() (string, error) {
 		}
 		base = filepath.Join(home, ".local", "share")
 	}
-	return filepath.Abs(filepath.Join(base, "zsh-git-inlay"))
+	return filepath.Abs(filepath.Join(base, "zsh-git-good"))
 }
 
 func SocketPath() (string, error) {
@@ -122,11 +122,11 @@ func SocketPath() (string, error) {
 // RuntimePath resolves the preferred runtime directory without creating it.
 // Dir may select its cache fallback if a configured XDG runtime is unwritable.
 func RuntimePath() (string, error) {
-	if override := os.Getenv("ZSH_GIT_INLAY_RUNTIME_DIR"); override != "" {
+	if override := os.Getenv("ZSH_GIT_GOOD_RUNTIME_DIR"); override != "" {
 		return filepath.Abs(override)
 	}
 	if base := os.Getenv("XDG_RUNTIME_DIR"); base != "" {
-		candidate := filepath.Join(base, "zsh-git-inlay")
+		candidate := filepath.Join(base, "zsh-git-good")
 		if runtimePrimaryUsable(candidate) {
 			return filepath.Abs(candidate)
 		}
@@ -139,7 +139,7 @@ func RuntimePath() (string, error) {
 		}
 		base = filepath.Join(userDirectory, ".cache")
 	}
-	return filepath.Abs(filepath.Join(base, "zsh-git-inlay", "runtime"))
+	return filepath.Abs(filepath.Join(base, "zsh-git-good", "runtime"))
 }
 
 func runtimePrimaryUsable(path string) bool {

@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/activity"
-	"github.com/gongahkia/zsh-git-inlay/internal/candidate"
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/daemon"
-	"github.com/gongahkia/zsh-git-inlay/internal/evaluation"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/ipc"
-	"github.com/gongahkia/zsh-git-inlay/internal/learning"
+	"github.com/gongahkia/zsh-git-good/internal/activity"
+	"github.com/gongahkia/zsh-git-good/internal/candidate"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/daemon"
+	"github.com/gongahkia/zsh-git-good/internal/evaluation"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/ipc"
+	"github.com/gongahkia/zsh-git-good/internal/learning"
 )
 
 func TestContextCommandReportsSummaryWithoutSourceContent(t *testing.T) {
@@ -64,9 +64,9 @@ func TestExplainCommandReportsGroundingForPreparedCandidate(t *testing.T) {
 	repository := t.TempDir()
 	runtimeDirectory, cacheDirectory := filepath.Join(t.TempDir(), "runtime"), filepath.Join(t.TempDir(), "cache")
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", runtimeDirectory)
-	t.Setenv("ZSH_GIT_INLAY_CACHE_DIR", cacheDirectory)
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", filepath.Join(t.TempDir(), "data"))
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", runtimeDirectory)
+	t.Setenv("ZSH_GIT_GOOD_CACHE_DIR", cacheDirectory)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", filepath.Join(t.TempDir(), "data"))
 	commandGit(t, repository, "init", "-q", "-b", "main")
 	if err := os.WriteFile(filepath.Join(repository, "parser_test.go"), []byte("package parser\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestExplainCommandReportsGroundingForPreparedCandidate(t *testing.T) {
 
 func TestPermissionsCommandsPersistOnlyTheActivityGrant(t *testing.T) {
 	dataDirectory := t.TempDir()
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", dataDirectory)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", dataDirectory)
 	output, err := captureCommandOutput(func() error { return run([]string{"permissions"}) })
 	if err != nil || !strings.Contains(output, `"activity": false`) {
 		t.Fatalf("default permissions output=%q err=%v", output, err)
@@ -132,7 +132,7 @@ func TestPermissionsCommandsPersistOnlyTheActivityGrant(t *testing.T) {
 
 func TestCloudCommandsRequireConfirmationPreviewOnlyGrantedCategoriesAndPersistNoSource(t *testing.T) {
 	dataDirectory := t.TempDir()
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", dataDirectory)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", dataDirectory)
 	repository := learningRepository(t)
 	if err := os.WriteFile(filepath.Join(repository, "cloud.go"), []byte("package cloud\nconst token = \"ghp_not_exposed\"\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -238,7 +238,7 @@ func TestComposeRejectsStagedStateChangedInEditor(t *testing.T) {
 
 func TestComposeSuppliesRequiredBodyWithoutNormalSuggestion(t *testing.T) {
 	repository := learningRepository(t)
-	if err := os.WriteFile(filepath.Join(repository, ".zsh-git-inlay.toml"), []byte("[commit]\nbody = \"required\"\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(repository, ".zsh-git-good.toml"), []byte("[commit]\nbody = \"required\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(repository, "parser_test.go"), []byte("package parser\n"), 0o600); err != nil {
@@ -278,9 +278,9 @@ func TestComposeSuppliesRequiredBodyWithoutNormalSuggestion(t *testing.T) {
 func TestActivityEmitCommandUsesConsentAndRedactsProducerData(t *testing.T) {
 	repository := t.TempDir()
 	runtimeDirectory, cacheDirectory, dataDirectory := filepath.Join(t.TempDir(), "runtime"), filepath.Join(t.TempDir(), "cache"), filepath.Join(t.TempDir(), "data")
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", runtimeDirectory)
-	t.Setenv("ZSH_GIT_INLAY_CACHE_DIR", cacheDirectory)
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", dataDirectory)
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", runtimeDirectory)
+	t.Setenv("ZSH_GIT_GOOD_CACHE_DIR", cacheDirectory)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", dataDirectory)
 	commandGit(t, repository, "init", "-q", "-b", "main")
 	commandGit(t, repository, "config", "user.name", "Test")
 	commandGit(t, repository, "config", "user.email", "test@example.invalid")
@@ -330,7 +330,7 @@ func TestActivityEmitCommandUsesConsentAndRedactsProducerData(t *testing.T) {
 
 func TestLearningCommandsAreScopedResettableAndCloneConfirmed(t *testing.T) {
 	dataDirectory := t.TempDir()
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", dataDirectory)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", dataDirectory)
 	first, second := learningRepository(t), learningRepository(t)
 	commandGit(t, first, "remote", "add", "origin", "https://name:token@example.invalid/owner/repository.git?private=true")
 	commandGit(t, second, "remote", "add", "origin", "https://example.invalid/owner/repository.git")
@@ -416,9 +416,9 @@ func learningRepository(t *testing.T) string {
 
 func startComposeDaemon(t *testing.T, repository string) func() {
 	t.Helper()
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("ZSH_GIT_INLAY_CACHE_DIR", filepath.Join(t.TempDir(), "cache"))
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", filepath.Join(t.TempDir(), "data"))
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("ZSH_GIT_GOOD_CACHE_DIR", filepath.Join(t.TempDir(), "cache"))
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", filepath.Join(t.TempDir(), "data"))
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	serverContext, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -484,9 +484,9 @@ func commandGit(t *testing.T, cwd string, arguments ...string) {
 func TestRepositoryStatusExplainsPrefixesWithoutGeneration(t *testing.T) {
 	repository := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", filepath.Join(t.TempDir(), "runtime"))
-	t.Setenv("ZSH_GIT_INLAY_CACHE_DIR", t.TempDir())
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", t.TempDir())
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", filepath.Join(t.TempDir(), "runtime"))
+	t.Setenv("ZSH_GIT_GOOD_CACHE_DIR", t.TempDir())
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", t.TempDir())
 	commandGit(t, repository, "init", "-q", "-b", "main")
 	if err := os.WriteFile(filepath.Join(repository, "file.txt"), []byte("staged\n"), 0600); err != nil {
 		t.Fatal(err)
@@ -561,9 +561,9 @@ func TestDoctorFailsForInvalidConfigAndExplainsTheCause(t *testing.T) {
 	if err := os.WriteFile(path, []byte("[provider]\nname = \"invalid-provider\"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("ZSH_GIT_INLAY_CONFIG", path)
-	t.Setenv("ZSH_GIT_INLAY_DATA_DIR", filepath.Join(root, "data"))
-	t.Setenv("ZSH_GIT_INLAY_RUNTIME_DIR", filepath.Join(root, "run"))
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	t.Setenv("ZSH_GIT_GOOD_DATA_DIR", filepath.Join(root, "data"))
+	t.Setenv("ZSH_GIT_GOOD_RUNTIME_DIR", filepath.Join(root, "run"))
 	output, err := captureCommandOutput(func() error { return run([]string{"doctor", "--json"}) })
 	if err == nil || !strings.Contains(err.Error(), "provider.name") || !strings.Contains(output, path) {
 		t.Fatalf("doctor output=%s err=%v", output, err)

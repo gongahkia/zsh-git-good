@@ -12,7 +12,7 @@ func TestIsolationRejectsInheritedRepositoryOverridesAndRestoresEnvironment(t *t
 		"GIT_INDEX_FILE": "/untrusted/index", "GIT_OBJECT_DIRECTORY": "/untrusted/objects",
 		"GIT_CONFIG_GLOBAL": "/untrusted/gitconfig", "GIT_CONFIG_COUNT": "1",
 		"GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/untrusted/hooks",
-		"ZSH_GIT_INLAY_CONFIG": "/untrusted/preferences", "OPENAI_API_KEY": "fixture-only",
+		"ZSH_GIT_GOOD_CONFIG": "/untrusted/preferences", "OPENAI_API_KEY": "fixture-only",
 	}
 	for key, value := range inherited {
 		t.Setenv(key, value)

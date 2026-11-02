@@ -22,8 +22,8 @@ case "$(uname -s)" in Darwin) target_os=darwin;; Linux) target_os=linux;; *) pri
 case "$(uname -m)" in x86_64|amd64) target_arch=amd64;; arm64|aarch64) target_arch=arm64;; *) printf '%s\n' 'unsupported architecture' >&2; exit 2;; esac
 stage=$(mktemp -d)
 trap 'rm -rf -- "$stage"' EXIT HUP INT TERM
-archive="zsh-git-inlay_${version}_${target_os}-${target_arch}.tar.gz"
-curl --fail --location --proto '=https' --tlsv1.2 --output "$stage/$archive" "https://github.com/gongahkia/zsh-git-inlay/releases/download/$version/$archive"
+archive="zsh-git-good_${version}_${target_os}-${target_arch}.tar.gz"
+curl --fail --location --proto '=https' --tlsv1.2 --output "$stage/$archive" "https://github.com/gongahkia/zsh-git-good/releases/download/$version/$archive"
 if command -v shasum >/dev/null 2>&1; then
  actual=$(shasum -a 256 "$stage/$archive"); actual=${actual%% *}
 else

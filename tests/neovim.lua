@@ -8,14 +8,14 @@ vim.system = function(command, _)
   return { wait = function() return { code = 0, stdout = '{"activity":true}' } end }
 end
 
-local adapter = require("zsh-git-inlay")
-assert(require("zsh-git-inlay.health"), "health module did not load")
-adapter.setup({ executable = "zsh-git-inlay-test", file_events = true, diagnostics = true })
+local adapter = require("zsh-git-good")
+assert(require("zsh-git-good.health"), "health module did not load")
+adapter.setup({ executable = "zsh-git-good-test", file_events = true, diagnostics = true })
 local buffer = vim.api.nvim_create_buf(true, false)
 vim.api.nvim_buf_set_name(buffer, root .. "/tests/neovim-fixture.lua")
 vim.api.nvim_exec_autocmds("BufReadPost", { buffer = buffer })
 vim.api.nvim_exec_autocmds("BufWritePost", { buffer = buffer })
-local namespace = vim.api.nvim_create_namespace("zsh-git-inlay-test")
+local namespace = vim.api.nvim_create_namespace("zsh-git-good-test")
 vim.diagnostic.set(namespace, buffer, {
   { lnum = 0, col = 0, severity = vim.diagnostic.severity.ERROR, message = "DO-NOT-RETAIN" },
 })
@@ -43,7 +43,7 @@ vim.api.nvim_exec_autocmds("BufWritePost", { buffer = buffer })
 vim.wait(20)
 assert(#calls == before, "disabled adapter emitted an event")
 
-adapter.setup({ executable = "zsh-git-inlay-test" })
+adapter.setup({ executable = "zsh-git-good-test" })
 vim.system = function()
   error("simulated emitter failure")
 end

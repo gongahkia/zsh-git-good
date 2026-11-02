@@ -6,15 +6,15 @@ the user grant. The existing Neovim producer uses the same protocol. Neither cha
 the normal commit-message renderer or command execution path.
 
 Only a user command can change the durable activity grant. The private record
-is `$XDG_DATA_HOME/zsh-git-inlay/permissions.json` (or its data-directory
+is `$XDG_DATA_HOME/zsh-git-good/permissions.json` (or its data-directory
 override), written `0600` beneath a private `0700` directory. A missing,
 malformed, non-private, or non-user-owned record is disabled rather than
 trusted.
 
 ```zsh
-zsh-git-inlay permissions
-zsh-git-inlay permissions enable activity
-zsh-git-inlay permissions revoke activity
+zsh-git-good permissions
+zsh-git-good permissions enable activity
+zsh-git-good permissions revoke activity
 ```
 
 The daemon reloads that grant before every event and every activity-derived
@@ -34,7 +34,7 @@ max_events = 256  # 1 through 4096 per repository/worktree
 
 The store also holds at most the configured active-repository count (32 by
 default). It is memory-only: it writes neither events nor derived signals to
-disk. Repository `.zsh-git-inlay.toml` accepts no activity keys, so repository
+disk. Repository `.zsh-git-good.toml` accepts no activity keys, so repository
 content cannot enable collection or weaken these limits.
 
 ## Event protocol
@@ -79,9 +79,9 @@ Events expire by TTL and are capped per repository/worktree. The administrative
 view is scoped to the current repository:
 
 ```zsh
-zsh-git-inlay activity inspect --cwd .
-zsh-git-inlay activity inspect --cwd . --json
-zsh-git-inlay activity clear --cwd .
+zsh-git-good activity inspect --cwd .
+zsh-git-good activity inspect --cwd . --json
+zsh-git-good activity clear --cwd .
 ```
 
 Inspection shows accepted, already-redacted events and aggregate rejection

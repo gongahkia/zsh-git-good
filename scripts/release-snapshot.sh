@@ -39,7 +39,7 @@ source_dir=$(
 	export CDPATH
 	cd -- "$source_dir" && pwd -P
 )
-[ -f "$source_dir/go.mod" ] && [ -f "$source_dir/zsh-git-inlay.plugin.zsh" ] && [ -f "$source_dir/CHANGELOG.md" ] || {
+[ -f "$source_dir/go.mod" ] && [ -f "$source_dir/zsh-git-good.plugin.zsh" ] && [ -f "$source_dir/CHANGELOG.md" ] || {
 	printf '%s\n' 'release source is incomplete' >&2
 	exit 1
 }
@@ -64,12 +64,12 @@ for target in $targets; do
 	stage="$output/.staging-$target"
 	cleanup_stage=$stage
 	mkdir "$stage"
-	GOOS=$os GOARCH=$arch CGO_ENABLED=0 go -C "$source_dir" build -trimpath -buildvcs=false -ldflags "$ldflags" -o "$stage/zsh-git-inlay" ./cmd/zsh-git-inlay
-	cp "$source_dir/zsh-git-inlay.plugin.zsh" "$source_dir/README.md" "$source_dir/CHANGELOG.md" "$stage/"
-	chmod 755 "$stage/zsh-git-inlay"
-	chmod 644 "$stage/zsh-git-inlay.plugin.zsh" "$stage/README.md" "$stage/CHANGELOG.md"
-	touch -t 200001010000 "$stage/zsh-git-inlay" "$stage/zsh-git-inlay.plugin.zsh" "$stage/README.md" "$stage/CHANGELOG.md"
-    set -- zsh-git-inlay zsh-git-inlay.plugin.zsh README.md CHANGELOG.md
+	GOOS=$os GOARCH=$arch CGO_ENABLED=0 go -C "$source_dir" build -trimpath -buildvcs=false -ldflags "$ldflags" -o "$stage/zsh-git-good" ./cmd/zsh-git-good
+	cp "$source_dir/zsh-git-good.plugin.zsh" "$source_dir/README.md" "$source_dir/CHANGELOG.md" "$stage/"
+	chmod 755 "$stage/zsh-git-good"
+	chmod 644 "$stage/zsh-git-good.plugin.zsh" "$stage/README.md" "$stage/CHANGELOG.md"
+	touch -t 200001010000 "$stage/zsh-git-good" "$stage/zsh-git-good.plugin.zsh" "$stage/README.md" "$stage/CHANGELOG.md"
+    set -- zsh-git-good zsh-git-good.plugin.zsh README.md CHANGELOG.md
     if [ -f "$source_dir/LICENSE" ]; then
         cp "$source_dir/LICENSE" "$stage/LICENSE"
         chmod 644 "$stage/LICENSE"
@@ -82,7 +82,7 @@ for target in $targets; do
         touch -t 200001010000 "$stage/THIRD_PARTY_NOTICES"
         set -- "$@" THIRD_PARTY_NOTICES
     fi
-	archive="$output/zsh-git-inlay_${version}_${target}.tar.gz"
+	archive="$output/zsh-git-good_${version}_${target}.tar.gz"
 	python3 "$script_dir/archive.py" --source "$stage" --output "$archive" "$@"
 	chmod 644 "$archive"
 	rm -rf -- "$stage"

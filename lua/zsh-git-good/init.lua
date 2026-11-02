@@ -1,8 +1,8 @@
--- Event-only Neovim adapter for zsh-git-inlay. It never renders or generates.
+-- Event-only Neovim adapter for zsh-git-good. It never renders or generates.
 local M = {}
 
 local defaults = {
-  executable = "zsh-git-inlay",
+  executable = "zsh-git-good",
   file_events = true,
   diagnostics = true,
   max_diagnostics = 1024,
@@ -106,7 +106,7 @@ function M.setup(options)
   state.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), options or {})
   state.config.max_diagnostics = math.max(1, math.min(4096, tonumber(state.config.max_diagnostics) or defaults.max_diagnostics))
   state.session = session_id()
-  state.group = vim.api.nvim_create_augroup("ZshGitInlayActivity", { clear = true })
+  state.group = vim.api.nvim_create_augroup("ZshGitGoodActivity", { clear = true })
 
   if state.config.file_events then
     vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {

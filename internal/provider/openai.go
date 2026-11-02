@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/config"
 )
 
 const DefaultOpenAIURL = "https://api.openai.com/v1"

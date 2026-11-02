@@ -33,7 +33,7 @@ jobs:
       - name: build reviewed artifacts and formula
         run: |
           make release-snapshot VERSION="$RELEASE_VERSION" DIST=dist/prepared
-          python3 scripts/prepare-package.py --dist dist/prepared --version "$RELEASE_VERSION" --license-id "$RELEASE_LICENSE" --output dist/prepared/zsh-git-inlay.rb
+          python3 scripts/prepare-package.py --dist dist/prepared --version "$RELEASE_VERSION" --license-id "$RELEASE_LICENSE" --output dist/prepared/zsh-git-good.rb
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: prepared-release

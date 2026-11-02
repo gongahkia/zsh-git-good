@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/control"
-	"github.com/gongahkia/zsh-git-inlay/internal/edit"
+	"github.com/gongahkia/zsh-git-good/internal/control"
+	"github.com/gongahkia/zsh-git-good/internal/edit"
 )
 
 const MaxRecords = 512

@@ -1,6 +1,6 @@
-# zsh-git-inlay
+# zsh-git-good
 
-`zsh-git-inlay` prepares Git commit-message candidates from the current staged
+`zsh-git-good` prepares Git commit-message candidates from the current staged
 state and exposes them as ordinary
 [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) ghost
 text:
@@ -12,7 +12,7 @@ git commit -m 'chore(cache): update 2 staged files'
 ```
 
 It is a Zsh-only autosuggestion strategy, not a `git` wrapper, prompt theme,
-TUI, or editor frontend. The plugin registers a `git-inlay` strategy and
+TUI, or editor frontend. The plugin registers a `git-good` strategy and
 leaves rendering to autosuggestions. A private local daemon prepares candidates
 after each prompt; while typing, the strategy only looks up a candidate already
 prepared for the exact staged state. It does not wait for generation.
@@ -29,7 +29,7 @@ cross-device sync.
   - [Prerequisites](#prerequisites)
   - [Basic Installation](#basic-installation)
   - [Manual Inspection](#manual-inspection)
-- [Using zsh-git-inlay](#using-zsh-git-inlay)
+- [Using zsh-git-good](#using-zsh-git-good)
   - [Prepared Suggestions](#prepared-suggestions)
   - [Configuration](#configuration)
   - [Diagnostics](#diagnostics)
@@ -44,7 +44,7 @@ cross-device sync.
   - [Privacy, Storage, and Freshness](#privacy-storage-and-freshness)
   - [Evaluation and Reliability](#evaluation-and-reliability)
 - [Getting Updates](#getting-updates)
-- [Uninstalling zsh-git-inlay](#uninstalling-zsh-git-inlay)
+- [Uninstalling zsh-git-good](#uninstalling-zsh-git-good)
 - [Contributing and Development](#contributing-and-development)
 - [Project Status and License](#project-status-and-license)
 
@@ -91,8 +91,8 @@ The supported install is a reviewed source checkout. The installer does not
 download a model or edit `.zshrc`.
 
 ```zsh
-git clone https://github.com/gongahkia/zsh-git-inlay.git
-cd zsh-git-inlay
+git clone https://github.com/gongahkia/zsh-git-good.git
+cd zsh-git-good
 make build
 sh scripts/install.sh --source "$PWD"
 ```
@@ -102,14 +102,14 @@ sources `zsh-autosuggestions` in `.zshrc`:
 
 ```zsh
 path=("$HOME/.local/bin" $path)
-source "$HOME/.local/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+source "$HOME/.local/share/zsh-git-good/zsh-git-good.plugin.zsh"
 ```
 
 Start a fresh Zsh session, then check installation and load order:
 
 ```zsh
-zsh-git-inlay version --json
-zsh-git-inlay doctor --json
+zsh-git-good version --json
+zsh-git-good doctor --json
 ```
 
 If autosuggestions was not loaded first, the plugin prints an actionable
@@ -121,11 +121,11 @@ There is no one-line remote installer. Inspect the checkout, build recipe, and
 installer before running it:
 
 ```zsh
-git clone https://github.com/gongahkia/zsh-git-inlay.git
-cd zsh-git-inlay
+git clone https://github.com/gongahkia/zsh-git-good.git
+cd zsh-git-good
 sed -n '1,240p' Makefile
 sed -n '1,260p' scripts/install.sh
-sed -n '1,260p' zsh-git-inlay.plugin.zsh
+sed -n '1,260p' zsh-git-good.plugin.zsh
 make build
 sh scripts/install.sh --source "$PWD"
 ```
@@ -134,7 +134,7 @@ The source installer atomically replaces only its executable and plugin under
 the selected prefix. See [advanced installation](#advanced-installation) for a
 custom prefix and the reviewed archive flow.
 
-## Using zsh-git-inlay
+## Using zsh-git-good
 
 ### Prepared Suggestions
 
@@ -168,15 +168,15 @@ Set a persistent binding in configuration, or disable cycling for one shell
 before sourcing the plugin:
 
 ```zsh
-ZSH_GIT_INLAY_CYCLE_KEYBINDING=none
-source "$HOME/.local/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+ZSH_GIT_GOOD_CYCLE_KEYBINDING=none
+source "$HOME/.local/share/zsh-git-good/zsh-git-good.plugin.zsh"
 ```
 
 ### Configuration
 
 Global settings are declarative TOML at
-`$XDG_CONFIG_HOME/zsh-git-inlay/config.toml`, falling back to
-`$HOME/.config/zsh-git-inlay/config.toml`. Unknown keys and malformed values
+`$XDG_CONFIG_HOME/zsh-git-good/config.toml`, falling back to
+`$HOME/.config/zsh-git-good/config.toml`. Unknown keys and malformed values
 are rejected; configuration is data, not shell code.
 
 ```toml
@@ -220,15 +220,15 @@ The executable supplies setup and inspection commands; they are not another
 commit-message interface.
 
 ```zsh
-zsh-git-inlay version --json
-zsh-git-inlay doctor --json
-zsh-git-inlay status --json
-zsh-git-inlay fingerprint --cwd .
-zsh-git-inlay context --cwd . --provider ollama
-zsh-git-inlay candidates --cwd .
-zsh-git-inlay explain --cwd . --json
-zsh-git-inlay suggest --cwd . --buffer 'git commit -m ' --json
-zsh-git-inlay daemon stop
+zsh-git-good version --json
+zsh-git-good doctor --json
+zsh-git-good status --json
+zsh-git-good fingerprint --cwd .
+zsh-git-good context --cwd . --provider ollama
+zsh-git-good candidates --cwd .
+zsh-git-good explain --cwd . --json
+zsh-git-good suggest --cwd . --buffer 'git commit -m ' --json
+zsh-git-good daemon stop
 ```
 
 `context` reports source categories, byte budgets, fingerprints, truncation,
@@ -243,8 +243,8 @@ stale or pending cache results, malformed replies, and unmatched prefixes.
 
 A cold repository, new staged state, or daemon restart has no candidate yet.
 Return to a prompt after staging changes, then type a supported
-`git commit -m` prefix. Use `zsh-git-inlay status --json` and
-`zsh-git-inlay candidates --cwd .` to distinguish a pending candidate from an
+`git commit -m` prefix. Use `zsh-git-good status --json` and
+`zsh-git-good candidates --cwd .` to distinguish a pending candidate from an
 unsupported or stale state.
 
 #### Does it change Git or create a commit?
@@ -256,8 +256,8 @@ Git command under your control.
 #### Why is the plugin inactive?
 
 `zsh-autosuggestions` must be sourced before
-`zsh-git-inlay.plugin.zsh`. Source it first, start a new shell, and use
-`zsh-git-inlay doctor --json` for dependency and runtime diagnostics.
+`zsh-git-good.plugin.zsh`. Source it first, start a new shell, and use
+`zsh-git-good doctor --json` for dependency and runtime diagnostics.
 
 #### Does normal use send repository content to a service?
 
@@ -273,8 +273,8 @@ provider-specific grant. See [providers and context](#providers-and-context).
 #### Custom Prefix
 
 Build the checked-out revision and choose a non-root prefix. The installer
-creates or replaces only `<prefix>/bin/zsh-git-inlay` and
-`<prefix>/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh`.
+creates or replaces only `<prefix>/bin/zsh-git-good` and
+`<prefix>/share/zsh-git-good/zsh-git-good.plugin.zsh`.
 
 ```zsh
 make build
@@ -285,7 +285,7 @@ Then load it after autosuggestions:
 
 ```zsh
 path=("/chosen/prefix/bin" $path)
-source "/chosen/prefix/share/zsh-git-inlay/zsh-git-inlay.plugin.zsh"
+source "/chosen/prefix/share/zsh-git-good/zsh-git-good.plugin.zsh"
 ```
 
 #### Installing a Reviewed Release Archive
@@ -297,7 +297,7 @@ verifying the published checksum, install an archive without a source checkout:
 ```zsh
 sha256sum -c checksums.txt
 sh scripts/install-release.sh \\
-  --archive zsh-git-inlay_0.1.0-rc.1_linux-amd64.tar.gz \\
+  --archive zsh-git-good_0.1.0-rc.1_linux-amd64.tar.gz \\
   --prefix "$HOME/.local"
 ```
 
@@ -312,15 +312,15 @@ For development, load a built checkout directly after autosuggestions:
 
 ```zsh
 path=("$PWD/.build" $path)
-source "$PWD/zsh-git-inlay.plugin.zsh"
+source "$PWD/zsh-git-good.plugin.zsh"
 ```
 
-Run `make build` first. Run `zsh_git_inlay_unload` to remove the plugin from
+Run `make build` first. Run `zsh_git_good_unload` to remove the plugin from
 the current shell without restarting it.
 
 ### Repository Message Policy
 
-A repository may include a strict declarative `.zsh-git-inlay.toml` file that
+A repository may include a strict declarative `.zsh-git-good.toml` file that
 constrains a Conventional Commit convention, allowed types/scopes,
 path-to-scope mappings, line length, capitalization, and body preference:
 
@@ -393,8 +393,8 @@ fallback = "none"
 
 ```zsh
 export OPENAI_API_KEY='...'
-zsh-git-inlay cloud preview --provider openai --cwd . --json
-zsh-git-inlay cloud grant openai \\
+zsh-git-good cloud preview --provider openai --cwd . --json
+zsh-git-good cloud grant openai \\
   --classes staged_diff,repository_context --confirm
 ```
 
@@ -405,7 +405,7 @@ statement about all provider-side data handling. Review current provider
 controls before granting context. Revoke access with:
 
 ```zsh
-zsh-git-inlay cloud revoke openai
+zsh-git-good cloud revoke openai
 ```
 
 Revocation removes that provider’s cached records and makes later lookup fail
@@ -419,9 +419,9 @@ Activity is disabled by default. Configuration can bound memory retention, but
 only an explicit user command can grant it:
 
 ```zsh
-zsh-git-inlay permissions
-zsh-git-inlay permissions enable activity
-zsh-git-inlay permissions revoke activity
+zsh-git-good permissions
+zsh-git-good permissions enable activity
+zsh-git-good permissions revoke activity
 ```
 
 With the grant, asynchronous Zsh hooks classify a small allowlist of Git, test,
@@ -434,7 +434,7 @@ Neovim 0.10+ is an optional activity producer, not another suggestion frontend.
 After adding this source checkout to Neovim’s runtime path and granting activity:
 
 ```lua
-require("zsh-git-inlay").setup({
+require("zsh-git-good").setup({
   file_events = true,
   diagnostics = true,
 })
@@ -453,12 +453,12 @@ reranks only candidates that already passed policy and grounding. It does not
 fine-tune a model, create a frontend, or treat displayed text as accepted.
 
 ```zsh
-zsh-git-inlay learning status --cwd .
-zsh-git-inlay learning inspect --cwd . --json
-zsh-git-inlay learning disable --cwd .
-zsh-git-inlay learning reset --cwd .
-zsh-git-inlay learning export --cwd . > profile.json
-zsh-git-inlay learning import --cwd . --file profile.json
+zsh-git-good learning status --cwd .
+zsh-git-good learning inspect --cwd . --json
+zsh-git-good learning disable --cwd .
+zsh-git-good learning reset --cwd .
+zsh-git-good learning export --cwd . > profile.json
+zsh-git-good learning import --cwd . --file profile.json
 ```
 
 Profiles contain aggregate type/scope, subject-shape, and limited verb
@@ -469,12 +469,12 @@ requires `--confirm`. See [LEARNING.md](docs/LEARNING.md).
 
 ### Commit-body Composition
 
-Normal ghost text is a single-line subject. `zsh-git-inlay compose` is a
+Normal ghost text is a single-line subject. `zsh-git-good compose` is a
 separate explicit editor workflow for a prepared, grounded candidate:
 
 ```zsh
-zsh-git-inlay compose --cwd .
-zsh-git-inlay compose --cwd . --candidate 1 --json
+zsh-git-good compose --cwd .
+zsh-git-good compose --cwd . --candidate 1 --json
 ```
 
 It proposes a subject plus a grounded staged-path body, opens the configured Git
@@ -492,7 +492,7 @@ forbids this workflow. See [COMPOSE.md](docs/COMPOSE.md).
 Normal lookup uses the current exact staged-state identity plus a short bounded
 owner-only Unix-socket lookup. It does not compile context, invoke a provider,
 or contact a network. The daemon normally uses
-`$XDG_RUNTIME_DIR/zsh-git-inlay/daemon.sock`, a `0600` socket inside a
+`$XDG_RUNTIME_DIR/zsh-git-good/daemon.sock`, a `0600` socket inside a
 `0700` directory, with a private XDG cache fallback.
 
 Candidate records are private bounded metadata below the XDG cache location.
@@ -517,9 +517,9 @@ Run the versioned synthetic corpus or replay eligible local history through a
 temporary staged index:
 
 ```zsh
-zsh-git-inlay evaluate --fixtures --json
-zsh-git-inlay evaluate --fixtures --partition held-out --json
-zsh-git-inlay evaluate --repo /absolute/path/to/repository --limit 50 --json
+zsh-git-good evaluate --fixtures --json
+zsh-git-good evaluate --fixtures --partition held-out --json
+zsh-git-good evaluate --repo /absolute/path/to/repository --limit 50 --json
 ```
 
 Reports are private JSON and Markdown files under the XDG state directory by
@@ -553,21 +553,21 @@ it does not touch `.zshrc`, configuration, cache, state, activity, learning
 profiles, or models.
 
 ```zsh
-cd /path/to/zsh-git-inlay
+cd /path/to/zsh-git-good
 git pull
 make build
 sh scripts/install.sh --source "$PWD" --prefix "$HOME/.local"
-zsh-git-inlay version --json
+zsh-git-good version --json
 ```
 
 Use a reviewed archive only after independently verifying its checksum. The
 snapshot procedure and its verification boundary are in
 [INSTALLATION.md](docs/INSTALLATION.md).
 
-## Uninstalling zsh-git-inlay
+## Uninstalling zsh-git-good
 
 Remove the plugin `source` line from `.zshrc`. In a running shell, call
-`zsh_git_inlay_unload` before reloading Zsh. Then remove the installed product
+`zsh_git_good_unload` before reloading Zsh. Then remove the installed product
 files and stop the installed daemon when possible:
 
 ```zsh
@@ -582,7 +582,7 @@ directories explicit:
 sh scripts/uninstall.sh --prefix "$HOME/.local" --purge-local-data
 ```
 
-Custom `ZSH_GIT_INLAY_*` directory overrides are never guessed or removed.
+Custom `ZSH_GIT_GOOD_*` directory overrides are never guessed or removed.
 The retained cache may contain candidate metadata; delete it only if you no
 longer need it or have a backup. [INSTALLATION.md](docs/INSTALLATION.md)
 documents exact paths and behavior.
@@ -604,7 +604,7 @@ Run the narrowest relevant check first, then broader checks. `make lint` runs
 Go vet, verifies Go formatting, syntax-checks Zsh and shell scripts, and rejects
 `eval` or a `git()` override in product paths. `make test-live-ollama` is
 deliberately opt-in: it needs a separately started loopback runtime and an
-already downloaded model named by `ZSH_GIT_INLAY_LIVE_OLLAMA_MODEL`.
+already downloaded model named by `ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL`.
 
 ## Project Status and License
 

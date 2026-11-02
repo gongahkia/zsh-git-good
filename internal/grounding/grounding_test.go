@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gongahkia/zsh-git-inlay/internal/config"
-	"github.com/gongahkia/zsh-git-inlay/internal/gitstate"
-	"github.com/gongahkia/zsh-git-inlay/internal/provider"
-	"github.com/gongahkia/zsh-git-inlay/internal/repoctx"
+	"github.com/gongahkia/zsh-git-good/internal/config"
+	"github.com/gongahkia/zsh-git-good/internal/gitstate"
+	"github.com/gongahkia/zsh-git-good/internal/provider"
+	"github.com/gongahkia/zsh-git-good/internal/repoctx"
 )
 
 func TestEvaluateRejectsUnsupportedClaimsAndRanksGroundedFirst(t *testing.T) {

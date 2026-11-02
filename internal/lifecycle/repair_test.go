@@ -12,7 +12,7 @@ func TestRepairRestoresVerifiedArtifactsAndOwnedBlockWithUndo(t *testing.T) {
 	if _, err := manager.Install(options); err != nil {
 		t.Fatal(err)
 	}
-	plugin := filepath.Join(options.Prefix, "share/zsh-git-inlay/zsh-git-inlay.plugin.zsh")
+	plugin := filepath.Join(options.Prefix, "share/zsh-git-good/zsh-git-good.plugin.zsh")
 	if err := os.WriteFile(plugin, []byte("# corrupted installed plugin\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

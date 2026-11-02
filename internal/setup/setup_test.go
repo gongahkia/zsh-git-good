@@ -9,8 +9,8 @@ import (
 
 func TestDiscoverInstalledPrefixAndDependencyOverride(t *testing.T) {
 	root := t.TempDir()
-	binary := filepath.Join(root, "bin", "zsh-git-inlay")
-	plugin := filepath.Join(root, "share", "zsh-git-inlay", "zsh-git-inlay.plugin.zsh")
+	binary := filepath.Join(root, "bin", "zsh-git-good")
+	plugin := filepath.Join(root, "share", "zsh-git-good", "zsh-git-good.plugin.zsh")
 	dependency := filepath.Join(root, "dependency with spaces.zsh")
 	for _, name := range []string{binary, plugin, dependency} {
 		if err := os.MkdirAll(filepath.Dir(name), 0700); err != nil {

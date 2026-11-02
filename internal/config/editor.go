@@ -263,7 +263,7 @@ func RepairDocument(content []byte, path string, repository bool) (Repair, error
 			return result, fmt.Errorf("cannot isolate invalid expression at %s; backup and edit this document manually", diagnostic.Error())
 		}
 		var quarantine bytes.Buffer
-		quarantine.WriteString("# zsh-git-inlay repair: quarantined invalid configuration\n")
+		quarantine.WriteString("# zsh-git-good repair: quarantined invalid configuration\n")
 		for _, line := range strings.Split(strings.TrimSuffix(string(result.Content[start:end]), "\n"), "\n") {
 			quarantine.WriteString("# " + line + "\n")
 		}

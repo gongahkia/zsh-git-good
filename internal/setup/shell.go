@@ -61,14 +61,14 @@ func ShellFile(ctx context.Context, override string, environment []string) (stri
 	if override != "" {
 		return filepath.Abs(override)
 	}
-	script := `builtin print -rn -- $'\0ZGI_SHELL_FILE\0'"${ZDOTDIR:-$HOME}/.zshrc"$'\0'`
+	script := `builtin print -rn -- $'\0ZGG_SHELL_FILE\0'"${ZDOTDIR:-$HOME}/.zshrc"$'\0'`
 	output, stderr, err := runShell(ctx, environment, "-c", script)
 	if err != nil {
 		return "", fmt.Errorf("discover Zsh startup location: %s: %w", stderr, err)
 	}
 	fields := bytes.Split(output, []byte{0})
 	for index, field := range fields {
-		if string(field) == "ZGI_SHELL_FILE" && index+1 < len(fields) {
+		if string(field) == "ZGG_SHELL_FILE" && index+1 < len(fields) {
 			path := string(fields[index+1])
 			if path == "" || strings.ContainsAny(path, "\r\n\x00") {
 				break
@@ -101,14 +101,14 @@ type ShellReport struct {
 func Probe(ctx context.Context, login bool, environment []string) (ShellReport, error) {
 	const script = `emulate -L zsh
 zmodload zsh/parameter
-builtin print -rn -- $'\0ZGI_PROBE\0'
-builtin print -rn -- "${_ZSH_GIT_INLAY_LOADED:-0}"$'\0'"${+functions[_zsh_autosuggest_fetch_suggestion]}"$'\0'"${ZSH_GIT_INLAY_PLUGIN_CONTRACT:-unknown}"$'\0'
-builtin print -rn -- "${functions_source[_zsh_autosuggest_strategy_git-inlay]:-}"$'\0'"${functions_source[_zsh_autosuggest_fetch_suggestion]:-}"$'\0'
-builtin print -rn -- "${commands[zsh-git-inlay]:-}"$'\0'"${(j:,:)ZSH_AUTOSUGGEST_STRATEGY}"$'\0'"${+ZSH_AUTOSUGGEST_USE_ASYNC}"$'\0'"${ZSH_GIT_INLAY_CYCLE_KEYBINDING:-}"$'\0'"${(j:,:)ZSH_GIT_INLAY_CYCLE_KEYMAPS}"$'\0'
-for zgi_map in emacs viins vicmd; do
-  builtin print -rn -- "$zgi_map"$'\0'"$(bindkey -M "$zgi_map" "${ZSH_GIT_INLAY_CYCLE_KEYBINDING:-^Xg}" 2>/dev/null)"$'\0'"${_ZSH_GIT_INLAY_CYCLE_ORIGINAL_WIDGETS[$zgi_map]:-}"$'\0'
+builtin print -rn -- $'\0ZGG_PROBE\0'
+builtin print -rn -- "${_ZSH_GIT_GOOD_LOADED:-0}"$'\0'"${+functions[_zsh_autosuggest_fetch_suggestion]}"$'\0'"${ZSH_GIT_GOOD_PLUGIN_CONTRACT:-unknown}"$'\0'
+builtin print -rn -- "${functions_source[_zsh_autosuggest_strategy_git-good]:-}"$'\0'"${functions_source[_zsh_autosuggest_fetch_suggestion]:-}"$'\0'
+builtin print -rn -- "${commands[zsh-git-good]:-}"$'\0'"${(j:,:)ZSH_AUTOSUGGEST_STRATEGY}"$'\0'"${+ZSH_AUTOSUGGEST_USE_ASYNC}"$'\0'"${ZSH_GIT_GOOD_CYCLE_KEYBINDING:-}"$'\0'"${(j:,:)ZSH_GIT_GOOD_CYCLE_KEYMAPS}"$'\0'
+for zgg_map in emacs viins vicmd; do
+  builtin print -rn -- "$zgg_map"$'\0'"$(bindkey -M "$zgg_map" "${ZSH_GIT_GOOD_CYCLE_KEYBINDING:-^Xg}" 2>/dev/null)"$'\0'"${_ZSH_GIT_GOOD_CYCLE_ORIGINAL_WIDGETS[$zgg_map]:-}"$'\0'
 done
-builtin print -rn -- $'ZGI_END\0'`
+builtin print -rn -- $'ZGG_END\0'`
 	mode := "-ic"
 	if login {
 		mode = "-lic"
@@ -117,11 +117,11 @@ builtin print -rn -- $'ZGI_END\0'`
 	result := ShellReport{Login: login, Stderr: stderr, Bindings: map[string]string{}, PreviousBindings: map[string]string{}}
 	fields := bytes.Split(output, []byte{0})
 	for index, field := range fields {
-		if string(field) != "ZGI_PROBE" {
+		if string(field) != "ZGG_PROBE" {
 			continue
 		}
 		data := fields[index+1:]
-		if len(data) < 20 || string(data[19]) != "ZGI_END" {
+		if len(data) < 20 || string(data[19]) != "ZGG_END" {
 			break
 		}
 		result.Loaded, result.DependencyLoaded = string(data[0]) == "1", string(data[1]) == "1"
