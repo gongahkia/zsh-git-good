@@ -1,283 +1,91 @@
 #!/bin/sh
+
 set -eu
 
-repository=${SOLOMON_REPOSITORY:-gongahkia/solomon}
-version=${SOLOMON_VERSION:-}
-release_base=${SOLOMON_RELEASE_BASE_URL:-}
-install_dir=${SOLOMON_INSTALL_DIR:-${XDG_BIN_HOME:-$HOME/.local/bin}}
-selected_shell=${SOLOMON_SHELL:-}
-shell_rc=${SOLOMON_SHELL_RC:-}
-legacy_bash_rc=$HOME/.bashrc
-start_marker='# >>> solomon initialize >>>'
-end_marker='# <<< solomon initialize <<<'
-
-fail() {
-  printf '%s\n' "solomon installer: $*" >&2
-  exit 1
+usage() {
+	printf '%s\n' 'usage: scripts/install.sh --source <checkout> [--prefix <directory>]'
 }
 
-require_command() {
-  command -v "$1" >/dev/null 2>&1 || fail "requires $1"
-}
+source_dir=
+prefix="${HOME}/.local"
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		--source)
+			[ "$#" -ge 2 ] || { usage >&2; exit 2; }
+			source_dir=$2
+			shift 2
+			;;
+		--prefix)
+			[ "$#" -ge 2 ] || { usage >&2; exit 2; }
+			prefix=$2
+			shift 2
+			;;
+		--help)
+			usage
+			exit 0
+			;;
+		*)
+			usage >&2
+			exit 2
+			;;
+	esac
+done
 
-validate_repository() {
-  case "$repository" in
-    ""|/*|*/*/*|*..*|*[!A-Za-z0-9._/-]*) fail "invalid repository" ;;
-  esac
-}
-
-validate_version() {
-  case "$version" in
-    v[0-9A-Za-z.+-]*) ;;
-    *) fail "invalid release version" ;;
-  esac
-  case "$version" in
-    *[!0-9A-Za-z.+-]*) fail "invalid release version" ;;
-  esac
-}
-
-detect_target() {
-  case "$(uname -s)" in
-    Linux) goos=linux ;;
-    Darwin) goos=darwin ;;
-    *) fail "unsupported operating system" ;;
-  esac
-  case "$(uname -m)" in
-    x86_64|amd64) goarch=amd64 ;;
-    arm64|aarch64) goarch=arm64 ;;
-    *) fail "unsupported architecture" ;;
-  esac
-}
-
-resolve_version() {
-  if [ -n "$version" ]; then
-    validate_version
-    return
-  fi
-  require_command curl
-  api_base=${SOLOMON_API_URL:-https://api.github.com}
-  metadata=$(mktemp)
-  trap 'rm -f "$metadata"' EXIT HUP INT TERM
-  curl --fail --location --silent --show-error "$api_base/repos/$repository/releases/latest" -o "$metadata" || fail "could not resolve the latest release"
-  version=$(sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$metadata")
-  rm -f "$metadata"
-  trap - EXIT HUP INT TERM
-  validate_version
-}
-
-sha256_file() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{print $1}'
-    return
-  fi
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$1" | awk '{print $1}'
-    return
-  fi
-  fail "requires sha256sum or shasum"
-}
-
-verify_checksum() {
-  artifact=$1
-  manifest=$2
-  expected_name=$3
-  expected=
-  while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      *[!\ -~]*) fail "checksum manifest contains invalid characters" ;;
-    esac
-    digest=${line%%'  '*}
-    name=${line#*'  '}
-    [ "$digest  $name" = "$line" ] || fail "checksum manifest has an invalid entry"
-    [ "${#digest}" -eq 64 ] || fail "checksum manifest has an invalid digest"
-    case "$digest" in
-      *[!0123456789abcdef]*|'') fail "checksum manifest has an invalid digest" ;;
-    esac
-    case "$name" in
-      ""|*/*|*\\*|*' '*) fail "checksum manifest has an invalid artifact name" ;;
-    esac
-    if [ "$name" = "$expected_name" ]; then
-      [ -z "$expected" ] || fail "checksum manifest has duplicate artifacts"
-      expected=$digest
-    fi
-  done < "$manifest"
-  [ -n "$expected" ] || fail "checksum manifest does not contain $expected_name"
-  actual=$(sha256_file "$artifact")
-  [ "$actual" = "$expected" ] || fail "checksum mismatch for $expected_name"
-}
-
-verify_signature() {
-  artifact=$1
-  bundle=$2
-  require_command cosign
-  identity="https://github.com/$repository/.github/workflows/release.yml@refs/tags/$version"
-  if ! cosign verify-blob "$artifact" --bundle "$bundle" --certificate-identity "$identity" --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null; then
-    fail "Sigstore verification failed"
-  fi
-}
-
-shell_quote() {
-  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
-}
-
-detect_shell_init() {
-  if [ -z "$selected_shell" ]; then
-    selected_shell=$(basename "${SHELL:-}")
-  fi
-  case "$selected_shell" in
-    bash)
-      if [ -n "$shell_rc" ]; then
-        case "$shell_rc" in
-          /*) legacy_bash_rc=$shell_rc ;;
-          *) fail "shell initialization path must be absolute" ;;
-        esac
-      fi
-      selected_shell=none
-      printf '%s\n' 'solomon: Bash integration is unavailable; installed the CLI without shell initialization' >&2
-      ;;
-    zsh|fish|none) ;;
-    *) selected_shell=none ;;
-  esac
-  if [ "$selected_shell" = none ]; then
-    return
-  fi
-  if [ -n "$shell_rc" ]; then
-    return
-  fi
-  case "$selected_shell" in
-    bash) shell_rc=$HOME/.bashrc ;;
-    zsh) shell_rc=$HOME/.zshrc ;;
-    fish) shell_rc=${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish ;;
-  esac
-  case "$shell_rc" in
-    /*) ;;
-    *) fail "shell initialization path must be absolute" ;;
-  esac
-}
-
-remove_shell_init_at() {
-  target=$1
-  [ -f "$target" ] || return 0
-  grep -Fqx "$start_marker" "$target" || return 0
-  grep -Fqx "$end_marker" "$target" || fail "managed shell initialization is incomplete in $target"
-  temporary=$(mktemp "${target}.solomon.XXXXXX")
-  awk -v start="$start_marker" -v end="$end_marker" '
-    $0 == start { skipping = 1; next }
-    skipping && $0 == end { skipping = 0; next }
-    !skipping { print }
-  ' "$target" > "$temporary"
-  mv "$temporary" "$target"
-}
-
-remove_legacy_bash_init() {
-  remove_shell_init_at "$HOME/.bashrc"
-  remove_shell_init_at "$legacy_bash_rc"
-}
-
-remove_shell_init() {
-  detect_shell_init
-  remove_legacy_bash_init
-  [ "$selected_shell" != none ] || return
-  remove_shell_init_at "$shell_rc"
-}
-
-add_shell_init() {
-  detect_shell_init
-  remove_legacy_bash_init
-  [ "$selected_shell" != none ] || return
-  case "$shell_rc" in
-    /*) ;;
-    *) fail "shell initialization path must be absolute" ;;
-  esac
-  if [ -e "$shell_rc" ] && [ ! -f "$shell_rc" ]; then
-    fail "shell initialization path is not a regular file"
-  fi
-  mkdir -p "$(dirname "$shell_rc")"
-  touch "$shell_rc"
-  if grep -Fqx "$start_marker" "$shell_rc"; then
-    grep -Fqx "$end_marker" "$shell_rc" || fail "managed shell initialization is incomplete in $shell_rc"
-    return
-  fi
-  binary=$(shell_quote "$install_dir/solomon")
-  printf '\n' >> "$shell_rc"
-  {
-    printf '%s\n' "$start_marker"
-    case "$selected_shell" in
-      zsh)
-        printf 'if [ -x %s ]; then\n' "$binary"
-        # shellcheck disable=SC2016 # write the command substitution into the managed Zsh startup file
-        printf '  eval "$(%s init --shell %s)"\n' "$binary" "$selected_shell"
-        printf 'fi\n'
-        ;;
-      fish)
-        printf 'if test -x %s\n' "$binary"
-        printf '  %s init --shell fish | source\n' "$binary"
-        printf 'end\n'
-        ;;
-    esac
-    printf '%s\n' "$end_marker"
-  } >> "$shell_rc"
-}
-
-uninstall() {
-  case "$install_dir" in
-    /*) ;;
-    *) fail "installation directory must be absolute" ;;
-  esac
-  target=$install_dir/solomon
-  if [ -L "$target" ]; then
-    fail "refusing to remove symbolic link $target"
-  fi
-  if [ -e "$target" ]; then
-    [ -f "$target" ] || fail "installation target is not a regular file"
-    rm "$target"
-  fi
-  remove_shell_init
-}
-
-case "${1:-}" in
-  --uninstall)
-    [ "$#" -eq 1 ] || fail "usage: install.sh [--uninstall]"
-    uninstall
-    exit 0
-    ;;
-  "") ;;
-  *) fail "usage: install.sh [--uninstall]" ;;
+[ -n "$source_dir" ] || { usage >&2; exit 2; }
+case "$prefix" in
+	""|/)
+		printf '%s\n' 'refusing an empty or root install prefix' >&2
+		exit 2
+		;;
 esac
+source_dir=$(
+	CDPATH=''
+	export CDPATH
+	cd -- "$source_dir" && pwd -P
+)
+binary="$source_dir/.build/zsh-git-good"
+plugin="$source_dir/zsh-git-good.plugin.zsh"
+[ -x "$binary" ] || { printf '%s\n' "build $binary first with make build" >&2; exit 1; }
+[ -f "$plugin" ] || { printf '%s\n' "plugin source is missing from $source_dir" >&2; exit 1; }
 
-validate_repository
-resolve_version
-detect_target
-case "$install_dir" in
-  /*) ;;
-  *) fail "installation directory must be absolute" ;;
-esac
-require_command curl
-require_command tar
-
-archive="solomon_${version}_${goos}_${goarch}.tar.gz"
-root=${archive%.tar.gz}
-if [ -z "$release_base" ]; then
-  release_base="https://github.com/$repository/releases/download/$version"
+bin_dir="$prefix/bin"
+plugin_dir="$prefix/share/zsh-git-good"
+mkdir -p "$bin_dir" "$plugin_dir"
+tmp_binary=$(mktemp "$bin_dir/.zsh-git-good.XXXXXX")
+tmp_plugin=$(mktemp "$plugin_dir/.zsh-git-good.plugin.zsh.XXXXXX")
+tmp_license=
+tmp_notices=
+cleanup() {
+	[ -z "$tmp_binary" ] || rm -f -- "$tmp_binary"
+	[ -z "$tmp_plugin" ] || rm -f -- "$tmp_plugin"
+	[ -z "$tmp_license" ] || rm -f -- "$tmp_license"
+	[ -z "$tmp_notices" ] || rm -f -- "$tmp_notices"
+}
+trap cleanup EXIT HUP INT TERM
+install -m 755 "$binary" "$tmp_binary"
+install -m 644 "$plugin" "$tmp_plugin"
+if [ -f "$source_dir/LICENSE" ]; then
+    tmp_license=$(mktemp "$plugin_dir/.LICENSE.XXXXXX")
+    install -m 644 "$source_dir/LICENSE" "$tmp_license"
 fi
-temporary=$(mktemp -d)
-trap 'rm -rf "$temporary"' EXIT HUP INT TERM
-artifact=$temporary/$archive
-manifest=$temporary/checksums.txt
-bundle=$temporary/$archive.sigstore.json
-curl --fail --location --silent --show-error "$release_base/$archive" -o "$artifact"
-curl --fail --location --silent --show-error "$release_base/checksums.txt" -o "$manifest"
-curl --fail --location --silent --show-error "$release_base/$archive.sigstore.json" -o "$bundle"
-verify_checksum "$artifact" "$manifest" "$archive"
-verify_signature "$artifact" "$bundle"
-members=$(tar -tzf "$artifact") || fail "invalid release archive"
-[ "$members" = "$root/
-$root/solomon" ] || fail "release archive has unexpected contents"
-mkdir -p "$install_dir"
-temporary_binary=$(mktemp "${install_dir}/.solomon.XXXXXX")
-tar -xOzf "$artifact" "$root/solomon" > "$temporary_binary" || fail "could not extract release binary"
-[ -s "$temporary_binary" ] || fail "release binary is empty"
-chmod 755 "$temporary_binary"
-mv -f "$temporary_binary" "$install_dir/solomon"
-add_shell_init
-printf 'installed solomon %s to %s\n' "$version" "$install_dir/solomon"
+if [ -f "$source_dir/THIRD_PARTY_NOTICES" ]; then
+    tmp_notices=$(mktemp "$plugin_dir/.THIRD_PARTY_NOTICES.XXXXXX")
+    install -m 644 "$source_dir/THIRD_PARTY_NOTICES" "$tmp_notices"
+fi
+mv -f "$tmp_binary" "$bin_dir/zsh-git-good"
+mv -f "$tmp_plugin" "$plugin_dir/zsh-git-good.plugin.zsh"
+tmp_binary=
+tmp_plugin=
+if [ -n "$tmp_license" ]; then
+    mv -f "$tmp_license" "$plugin_dir/LICENSE"
+    tmp_license=
+fi
+if [ -n "$tmp_notices" ]; then
+    mv -f "$tmp_notices" "$plugin_dir/THIRD_PARTY_NOTICES"
+    tmp_notices=
+fi
+
+printf '%s\n' "installed $bin_dir/zsh-git-good"
+printf '%s\n' 'add this after zsh-autosuggestions in .zshrc:'
+printf '%s\n' "  path=(\"$prefix/bin\" \$path)"
+printf '  source "%s/share/zsh-git-good/zsh-git-good.plugin.zsh"\n' "$prefix"

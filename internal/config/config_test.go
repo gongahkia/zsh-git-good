@@ -1,704 +1,170 @@
 package config
 
 import (
-	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
-	"reflect"
-	"runtime"
-	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 )
 
-type trustedProjectFixture struct {
-	Name          string `json:"name"`
-	Config        string `json:"config"`
-	ConfigMode    string `json:"config_mode"`
-	Marker        string `json:"marker"`
-	MarkerMode    string `json:"marker_mode"`
-	DirectoryMode string `json:"directory_mode"`
-	Trusted       bool   `json:"trusted"`
-	Mode          string `json:"mode"`
-}
-
-func TestSetValidatesMode(t *testing.T) {
-	cfg := Default()
-	if err := cfg.Set("mode", "interrupt"); err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "interrupt" {
-		t.Fatal(cfg.Mode)
-	}
-	if err := cfg.Set("mode", "unsafe"); err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestSetConfiguresDisplayFields(t *testing.T) {
-	cfg := Default()
-	if err := cfg.Set("display.cause", "false"); err != nil || cfg.Display.Cause {
-		t.Fatalf("display cause = %#v, %v", cfg.Display, err)
-	}
-	if err := cfg.Set("display.trace", "true"); err != nil || !cfg.Display.Trace {
-		t.Fatalf("display trace = %#v, %v", cfg.Display, err)
-	}
-	if err := cfg.Set("display.confidence", "false"); err != nil || cfg.Display.Confidence {
-		t.Fatalf("display confidence = %#v, %v", cfg.Display, err)
-	}
-	if err := cfg.Set("display.risk", "invalid"); err == nil {
-		t.Fatal("expected display value error")
-	}
-}
-
-func TestRuleExceptionCRUD(t *testing.T) {
-	cfg := Default()
-	if err := cfg.AddRuleException(RuleException{ID: "skip-git", Command: "git sttaus"}); err != nil || !cfg.HasRuleException("git sttaus") {
-		t.Fatalf("add exception = %#v, %v", cfg.RuleExceptions, err)
-	}
-	if err := cfg.AddRuleException(RuleException{ID: "skip-git", Command: "git statsu"}); err == nil {
-		t.Fatal("expected duplicate id error")
-	}
-	if err := cfg.UpdateRuleException("skip-git", "git statsu"); err != nil || cfg.HasRuleException("git sttaus") || !cfg.HasRuleException("git statsu") {
-		t.Fatalf("update exception = %#v, %v", cfg.RuleExceptions, err)
-	}
-	if err := cfg.RemoveRuleException("skip-git"); err != nil || len(cfg.RuleExceptions) != 0 {
-		t.Fatalf("remove exception = %#v, %v", cfg.RuleExceptions, err)
-	}
-	if err := cfg.RemoveRuleException("skip-git"); err == nil {
-		t.Fatal("expected missing exception error")
-	}
-}
-
-func TestRuleExceptionsRejectInvalidValues(t *testing.T) {
-	for _, exception := range []RuleException{
-		{ID: "", Command: "git status"},
-		{ID: "Invalid", Command: "git status"},
-		{ID: "skip", Command: " "},
-		{ID: "skip", Command: strings.Repeat("x", maxRuleExceptionCommandBytes+1)},
-	} {
-		cfg := Default()
-		if err := cfg.AddRuleException(exception); err == nil {
-			t.Fatalf("accepted invalid exception %#v", exception)
-		}
-	}
-}
-
-func TestDefaultIsNonBlocking(t *testing.T) {
-	if Default().Mode != "hint" {
-		t.Fatal("default must be hint")
-	}
-}
-
-func TestRemovedRegistrySettingsAreIgnoredOnDiskAndRejectedBySet(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.json")
-	if err := os.WriteFile(path, []byte(`{"schema_version":2,"registry_enabled":true,"auto_update_enabled":true}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := LoadGlobal(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, key := range []string{"registry_enabled", "auto_update_enabled"} {
-		if err := cfg.Set(key, "true"); err == nil {
-			t.Fatalf("accepted removed setting %q", key)
-		}
-	}
-	if err := Write(path, cfg); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(data), "registry_enabled") || strings.Contains(string(data), "auto_update_enabled") {
-		t.Fatalf("removed settings persisted: %s", data)
-	}
-}
-
-func TestRemovedRegistrySessionOverridesAreIgnored(t *testing.T) {
-	values, err := sessionValues(Paths{Environ: func() []string {
-		return []string{"SOLOMON_REGISTRY_ENABLED=true", "SOLOMON_AUTO_UPDATE_ENABLED=true"}
-	}})
-	if err != nil || len(values) != 0 {
-		t.Fatalf("session values = %#v, %v", values, err)
-	}
-}
-
-func TestDefaultPolicyIsHintOnly(t *testing.T) {
-	cfg := Default()
-	if cfg.Mode != "hint" || cfg.AutoApplySafe || !cfg.CuratedPacksEnabled || cfg.RiskInterrupt || cfg.LocalLearningEnabled || cfg.LearningRetentionDays != defaultLearningRetentionDays || cfg.LearnedRuleActionCeiling != "hint" || !cfg.UndoEnabled || cfg.UndoTTLSeconds != defaultUndoTTLSeconds {
-		t.Fatalf("unexpected defaults: %#v", cfg)
-	}
-}
-
-func TestSetV1PolicySettings(t *testing.T) {
-	cfg := Default()
-	for key, value := range map[string]string{
-		"curated_packs_enabled":       "false",
-		"risk_interrupt":              "false",
-		"local_learning_enabled":      "true",
-		"learning_retention_days":     "45",
-		"learned_rule_action_ceiling": "rewrite",
-		"undo_enabled":                "false",
-		"undo_ttl_seconds":            "45",
-	} {
-		if err := cfg.Set(key, value); err != nil {
-			t.Fatalf("Set(%q, %q) = %v", key, value, err)
-		}
-	}
-	if cfg.CuratedPacksEnabled || cfg.RiskInterrupt || !cfg.LocalLearningEnabled || cfg.LearningRetentionDays != 45 || cfg.LearnedRuleActionCeiling != "rewrite" || cfg.UndoEnabled || cfg.UndoTTLSeconds != 45 {
-		t.Fatalf("unexpected configured policy: %#v", cfg)
-	}
-	if err := cfg.Set("learning_retention_days", "91"); err == nil {
-		t.Fatal("accepted excessive retention")
-	}
-	if err := cfg.Set("learned_rule_action_ceiling", "interrupt"); err == nil {
-		t.Fatal("accepted unsupported learned-rule action")
-	}
-	if err := cfg.Set("undo_ttl_seconds", "301"); err == nil {
-		t.Fatal("accepted excessive undo ttl")
-	}
-}
-
-func TestCuratedPackEnablementSessionOverride(t *testing.T) {
-	cfg, err := ApplySessionOverrides(Default(), map[string]string{"SOLOMON_CURATED_PACKS_ENABLED": "false"})
-	if err != nil || cfg.CuratedPacksEnabled {
-		t.Fatalf("curated pack session override = %#v, %v", cfg, err)
-	}
-}
-
-func TestGlobalPathPrefersAbsoluteXDGConfigHome(t *testing.T) {
-	home := func() (string, error) { return "/home/unused", nil }
-	base := filepath.Join(t.TempDir(), "config")
-	path, err := globalPath(home, func(string) string { return base })
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := filepath.Join(base, "solomon", "config.json")
-	if path != want {
-		t.Fatalf("path = %q, want %q", path, want)
-	}
-}
-
-func TestGlobalPathIgnoresRelativeXDGConfigHome(t *testing.T) {
-	home := func() (string, error) { return filepath.Join(string(filepath.Separator), "home", "user"), nil }
-	path, err := globalPath(home, func(string) string { return "relative-config" })
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := filepath.Join(string(filepath.Separator), "home", "user", ".config", "solomon", "config.json")
-	if path != want {
-		t.Fatalf("path = %q, want %q", path, want)
-	}
-}
-
-func TestGlobalPathPropagatesHomeFailure(t *testing.T) {
-	want := errors.New("home unavailable")
-	_, err := globalPath(func() (string, error) { return "", want }, func(string) string { return "" })
-	if !errors.Is(err, want) {
-		t.Fatalf("error = %v, want %v", err, want)
-	}
-}
-
-func TestLoadUsesProvidedXDGConfigHome(t *testing.T) {
-	base := t.TempDir()
-	path := filepath.Join(base, "solomon", "config.json")
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(`{"mode":"off"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := Load(Paths{
-		Home: func() (string, error) { return t.TempDir(), nil },
-		CWD:  func() (string, error) { return t.TempDir(), nil },
-		Env: func(key string) string {
-			if key == "XDG_CONFIG_HOME" {
-				return base
-			}
-			return ""
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "off" {
-		t.Fatalf("mode = %q, want off", cfg.Mode)
-	}
-}
-
-func TestApplySessionOverridesUsesStrictAllowlist(t *testing.T) {
-	cfg, err := ApplySessionOverrides(Default(), map[string]string{
-		"SOLOMON_MODE":             "rewrite",
-		"SOLOMON_AUTO_APPLY_SAFE":  "true",
-		"SOLOMON_UNDO_ENABLED":     "false",
-		"SOLOMON_UNDO_TTL_SECONDS": "45",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "rewrite" || !cfg.AutoApplySafe || cfg.UndoEnabled || cfg.UndoTTLSeconds != 45 {
-		t.Fatalf("unexpected override result: %#v", cfg)
-	}
-}
-
-func TestCurrentSchemaRejectsRetiredLocalHistorySetting(t *testing.T) {
-	input := []byte(`{"schema_version":` + strconv.Itoa(CurrentSchemaVersion) + `,"local_history_enabled":true}`)
-	_, err := decode(input, Default())
-	if err == nil || !strings.Contains(err.Error(), "local history is not supported") {
-		t.Fatalf("retired local history setting error = %v", err)
-	}
-}
-
-func TestApplySessionOverridesRejectsUnknownAndInvalidValues(t *testing.T) {
-	for name, values := range map[string]map[string]string{
-		"unknown":  {"SOLOMON_UNSAFE": "true"},
-		"boolean":  {"SOLOMON_AUTO_APPLY_SAFE": "1"},
-		"mode":     {"SOLOMON_MODE": "unsafe"},
-		"undo ttl": {"SOLOMON_UNDO_TTL_SECONDS": "0"},
-	} {
-		t.Run(name, func(t *testing.T) {
-			if _, err := ApplySessionOverrides(Default(), values); err == nil {
-				t.Fatal("expected override error")
-			}
-		})
-	}
-}
-
-func TestSessionValuesRejectsDuplicateOverrides(t *testing.T) {
-	_, err := sessionValues(Paths{Environ: func() []string {
-		return []string{"SOLOMON_MODE=hint", "SOLOMON_MODE=rewrite"}
-	}})
-	if err == nil || !strings.Contains(err.Error(), "duplicate session override") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestLoadAppliesSessionOverrides(t *testing.T) {
-	cfg, err := Load(Paths{
-		Home: func() (string, error) { return t.TempDir(), nil },
-		CWD:  func() (string, error) { return t.TempDir(), nil },
-		Env:  func(string) string { return "" },
-		Environ: func() []string {
-			return []string{"SOLOMON_MODE=interrupt"}
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "interrupt" {
-		t.Fatalf("mode = %q, want interrupt", cfg.Mode)
-	}
-}
-
-func TestSessionOverridesDoNotPersist(t *testing.T) {
-	base := t.TempDir()
-	path := filepath.Join(base, "solomon", "config.json")
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(`{"mode":"hint"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	paths := Paths{
-		Home: func() (string, error) { return base, nil },
-		CWD:  func() (string, error) { return t.TempDir(), nil },
-		Env: func(key string) string {
-			if key == "XDG_CONFIG_HOME" {
-				return base
-			}
-			return ""
-		},
-		Environ: func() []string { return []string{"SOLOMON_MODE=interrupt"} },
-	}
-	withOverride, err := Load(paths)
-	if err != nil || withOverride.Mode != "interrupt" {
-		t.Fatalf("session configuration = %#v, %v", withOverride, err)
-	}
-	paths.Environ = func() []string { return nil }
-	withoutOverride, err := Load(paths)
-	if err != nil || withoutOverride.Mode != "hint" {
-		t.Fatalf("persisted configuration = %#v, %v", withoutOverride, err)
-	}
-}
-
-func TestSessionOverridesTakePrecedenceOverApprovedProjectAndGlobalConfig(t *testing.T) {
+func TestLoadValidatesGlobalSettings(t *testing.T) {
 	root := t.TempDir()
-	configHome := filepath.Join(root, "config")
-	globalPath := filepath.Join(configHome, "solomon", "config.json")
-	if err := os.MkdirAll(filepath.Dir(globalPath), 0o700); err != nil {
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(globalPath, []byte(`{"mode":"hint","auto_apply_safe":false}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("[daemon]\nidle_timeout = \"50ms\"\nmax_active_repositories = 3\nmax_generation_concurrency = 1\n[cache]\nmax_records = 4\nmax_bytes = 65536\nmax_age = \"1h\"\n[provider]\nname = \"ollama\"\nmodel = \"qwen2.5-coder:0.5b\"\ntimeout = \"9s\"\nfallback = \"none\"\n[grounding]\nambiguity = \"quiet\"\n[activity]\nretention = \"2h\"\nmax_events = 4\n[zsh]\ncycle_keybinding = \"^Xh\"\n[diagnostics]\nverbose = true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	project := filepath.Join(root, "project")
-	writeProjectConfig(t, project, "rewrite", true)
-	projectPath := filepath.Join(project, ".solomon", "config.json")
-	if err := os.WriteFile(projectPath, []byte(`{"mode":"rewrite","auto_apply_safe":true}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := Load(Paths{
-		Home: func() (string, error) { return root, nil },
-		CWD:  func() (string, error) { return project, nil },
-		Env: func(key string) string {
-			if key == "XDG_CONFIG_HOME" {
-				return configHome
-			}
-			return ""
-		},
-		Environ: func() []string { return []string{"SOLOMON_MODE=interrupt", "SOLOMON_AUTO_APPLY_SAFE=false"} },
-	})
+	t.Setenv("XDG_CONFIG_HOME", root)
+	settings, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Mode != "interrupt" || cfg.AutoApplySafe {
-		t.Fatalf("session precedence configuration = %#v", cfg)
+	if settings.IdleTimeout != 50*time.Millisecond || settings.MaxRepositories != 3 || settings.MaxGenerationJobs != 1 || settings.CacheMaxRecords != 4 || settings.CacheMaxBytes != 65536 || settings.CacheMaxAge != time.Hour || settings.Provider != "ollama" || settings.ProviderModel != "qwen2.5-coder:0.5b" || settings.ProviderTimeout != 9*time.Second || settings.ProviderFallback != "none" || settings.GroundingPolicy != "quiet" || settings.ActivityRetention != 2*time.Hour || settings.ActivityMaxEvents != 4 || settings.CycleKeybinding != "^Xh" || !settings.Verbose || settings.Version == "default" {
+		t.Fatalf("settings = %#v", settings)
 	}
 }
 
-func TestLoadDiscoversNearestTrustedProjectConfiguration(t *testing.T) {
+func TestLoadRejectsUnsafeProviderConfiguration(t *testing.T) {
 	root := t.TempDir()
-	parent := filepath.Join(root, "parent")
-	child := filepath.Join(parent, "child")
-	if err := os.MkdirAll(child, 0o700); err != nil {
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeProjectConfig(t, parent, "rewrite", true)
-	writeProjectConfig(t, child, "off", true)
-	cfg, err := loadFromDirectory(t, child)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "off" {
-		t.Fatalf("mode = %q, want off", cfg.Mode)
-	}
-}
-
-func TestLoadSkipsUntrustedProjectConfiguration(t *testing.T) {
-	root := t.TempDir()
-	parent := filepath.Join(root, "parent")
-	child := filepath.Join(parent, "child")
-	if err := os.MkdirAll(child, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	writeProjectConfig(t, parent, "rewrite", true)
-	writeProjectConfig(t, child, "off", false)
-	cfg, err := loadFromDirectory(t, child)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "hint" {
-		t.Fatalf("mode = %q, want hint", cfg.Mode)
-	}
-}
-
-func TestApprovedProjectConfigurationOverridesOnlySpecifiedFields(t *testing.T) {
-	directory := t.TempDir()
-	writeProjectConfig(t, directory, "hint", true)
-	path := filepath.Join(directory, ".solomon", "config.json")
-	if err := os.WriteFile(path, []byte(`{"mode":"rewrite","display":{"trace":true},"auto_apply_safe":false}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	base := Default()
-	base.Mode, base.AutoApplySafe, base.Display.Trace = "interrupt", true, false
-	merged, err := mergeApprovedProject(base, path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if merged.Mode != "hint" || merged.AutoApplySafe || !merged.Display.Trace || !merged.Display.Cause {
-		t.Fatalf("merged configuration = %#v", merged)
-	}
-}
-
-func TestUnapprovedProjectConfigurationCannotOverrideGlobalConfiguration(t *testing.T) {
-	directory := t.TempDir()
-	writeProjectConfig(t, directory, "rewrite", false)
-	path := filepath.Join(directory, ".solomon", "config.json")
-	base := Default()
-	base.Mode = "interrupt"
-	merged, err := mergeApprovedProject(base, path)
-	if err != nil || !reflect.DeepEqual(merged, base) {
-		t.Fatalf("unapproved merge = %#v, %v", merged, err)
-	}
-}
-
-func TestProjectPathRejectsNonRegularConfiguration(t *testing.T) {
-	directory := t.TempDir()
-	configPath := filepath.Join(directory, ".solomon", "config.json")
-	if err := os.MkdirAll(configPath, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := projectPath(directory); ok {
-		t.Fatal("expected non-regular config to be ignored")
-	}
-}
-
-func TestTrustedProjectRejectsInsecureMarkers(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("permission mutation uses POSIX mode bits")
-	}
-	directory := t.TempDir()
-	writeProjectConfig(t, directory, "hint", true)
-	configPath := filepath.Join(directory, ".solomon", "config.json")
-	marker := filepath.Join(directory, ".solomon", "trusted")
-	if !trustedProject(configPath) {
-		t.Fatal("expected secure marker to be trusted")
-	}
-	if err := os.Chmod(marker, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if trustedProject(configPath) {
-		t.Fatal("expected world-readable marker to be rejected")
-	}
-	if err := os.Chmod(marker, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chmod(filepath.Dir(marker), 0o770); err != nil {
-		t.Fatal(err)
-	}
-	if trustedProject(configPath) {
-		t.Fatal("expected group-writable marker directory to be rejected")
-	}
-}
-
-func TestTrustedProjectRejectsSymlinkMarker(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation requires additional Windows privileges")
-	}
-	directory := t.TempDir()
-	writeProjectConfig(t, directory, "hint", true)
-	configPath := filepath.Join(directory, ".solomon", "config.json")
-	marker := filepath.Join(directory, ".solomon", "trusted")
-	target := filepath.Join(directory, "target")
-	if err := os.WriteFile(target, nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(marker); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(target, marker); err != nil {
-		t.Fatal(err)
-	}
-	if trustedProject(configPath) {
-		t.Fatal("expected symlink marker to be rejected")
-	}
-}
-
-func TestTrustedProjectPermissionRegressionCorpus(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("permission mutation uses POSIX mode bits")
-	}
-	data, err := os.ReadFile("testdata/trusted_project_permissions.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var fixtures []trustedProjectFixture
-	if err := json.Unmarshal(data, &fixtures); err != nil {
-		t.Fatal(err)
-	}
-	if len(fixtures) == 0 {
-		t.Fatal("trusted project corpus is empty")
-	}
-	for _, fixture := range fixtures {
-		t.Run(fixture.Name, func(t *testing.T) {
-			if fixture.Name == "" || fixture.Config == "" || fixture.Marker == "" || fixture.DirectoryMode == "" || fixture.Mode == "" {
-				t.Fatalf("invalid trusted project fixture: %#v", fixture)
-			}
-			directory := t.TempDir()
-			configDirectory := filepath.Join(directory, ".solomon")
-			if err := os.MkdirAll(configDirectory, 0o700); err != nil {
-				t.Fatal(err)
-			}
-			configPath := filepath.Join(configDirectory, "config.json")
-			target := filepath.Join(directory, "target")
-			if fixture.Config == "file" {
-				mode := projectPermission(t, fixture.ConfigMode)
-				if err := os.WriteFile(configPath, []byte(`{"mode":"rewrite"}`), mode); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Chmod(configPath, mode); err != nil {
-					t.Fatal(err)
-				}
-			} else if fixture.Config == "symlink" {
-				if err := os.WriteFile(target, []byte(`{"mode":"rewrite"}`), 0o600); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Symlink(target, configPath); err != nil {
-					t.Fatal(err)
-				}
-			} else {
-				t.Fatalf("unknown config type %q", fixture.Config)
-			}
-			marker := filepath.Join(configDirectory, "trusted")
-			switch fixture.Marker {
-			case "file":
-				mode := projectPermission(t, fixture.MarkerMode)
-				if err := os.WriteFile(marker, nil, mode); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Chmod(marker, mode); err != nil {
-					t.Fatal(err)
-				}
-			case "symlink":
-				if err := os.WriteFile(target, nil, 0o600); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Symlink(target, marker); err != nil {
-					t.Fatal(err)
-				}
-			case "missing":
-			default:
-				t.Fatalf("unknown marker type %q", fixture.Marker)
-			}
-			if err := os.Chmod(configDirectory, projectPermission(t, fixture.DirectoryMode)); err != nil {
-				t.Fatal(err)
-			}
-			if got := trustedProject(configPath); got != fixture.Trusted {
-				t.Fatalf("trustedProject(%q) = %t, want %t", configPath, got, fixture.Trusted)
-			}
-			base := Default()
-			merged, err := mergeApprovedProject(base, configPath)
-			if err != nil || merged.Mode != fixture.Mode {
-				t.Fatalf("mergeApprovedProject() = %#v, %v; want mode %q", merged, err, fixture.Mode)
-			}
-		})
-	}
-}
-
-func projectPermission(t *testing.T, value string) os.FileMode {
-	t.Helper()
-	parsed, err := strconv.ParseUint(value, 8, 32)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return os.FileMode(parsed)
-}
-
-func loadFromDirectory(t *testing.T, directory string) (Config, error) {
-	t.Helper()
-	return Load(Paths{
-		Home:    func() (string, error) { return t.TempDir(), nil },
-		CWD:     func() (string, error) { return directory, nil },
-		Env:     func(string) string { return "" },
-		Environ: func() []string { return nil },
-	})
-}
-
-func writeProjectConfig(t *testing.T, directory, mode string, trusted bool) {
-	t.Helper()
-	configDirectory := filepath.Join(directory, ".solomon")
-	if err := os.MkdirAll(configDirectory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(configDirectory, "config.json"), []byte(`{"mode":"`+mode+`"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if trusted {
-		if err := os.WriteFile(filepath.Join(configDirectory, "trusted"), nil, 0o600); err != nil {
+	t.Setenv("XDG_CONFIG_HOME", root)
+	for _, content := range []string{
+		"[provider]\nname = \"ollama\"\n",
+		"[provider]\nname = \"cloud\"\n",
+		"[provider]\nname = \"openai\"\nmodel = \"gpt-5\"\n",
+		"[provider]\napi_key = \"not-allowed\"\n",
+		"[provider]\nmodel = \"http://example.invalid/model\"\n",
+		"[provider]\ntimeout = \"100ms\"\n",
+		"[provider]\nfallback = \"cloud\"\n",
+		"[grounding]\nambiguity = \"unsafe\"\n",
+		"[activity]\nretention = \"20s\"\n",
+		"[activity]\nmax_events = 4097\n",
+	} {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
+		if _, err := Load(); err == nil {
+			t.Fatalf("unsafe provider config accepted: %q", content)
+		}
 	}
 }
 
-func TestDecodeMigratesVersionlessConfiguration(t *testing.T) {
-	cfg, err := decode([]byte(`{"mode":"rewrite"}`), Default())
-	if err != nil {
+func TestLoadAcceptsExplicitOpenAIWithoutCredentialConfiguration(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "zsh-git-good", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SchemaVersion != CurrentSchemaVersion || cfg.Mode != "hint" || cfg.AutoApplySafe || cfg.RiskInterrupt {
-		t.Fatalf("unexpected migrated config: %#v", cfg)
-	}
-}
-
-func TestDecodeAcceptsCurrentConfigurationSchema(t *testing.T) {
-	cfg, err := decode([]byte(`{"schema_version":`+strconv.Itoa(CurrentSchemaVersion)+`,"mode":"off"}`), Default())
-	if err != nil {
+	if err := os.WriteFile(path, []byte("[provider]\nname = \"openai\"\nmodel = \"gpt-5\"\ntimeout = \"9s\"\nfallback = \"none\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SchemaVersion != CurrentSchemaVersion || cfg.Mode != "off" {
-		t.Fatalf("unexpected decoded config: %#v", cfg)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	settings, err := Load()
+	if err != nil || settings.Provider != "openai" || settings.ProviderModel != "gpt-5" || settings.ProviderFallback != "none" {
+		t.Fatalf("OpenAI settings=%#v err=%v", settings, err)
 	}
 }
 
-func TestDecodeRejectsUnsupportedConfigurationSchema(t *testing.T) {
-	_, err := decode([]byte(`{"schema_version":`+strconv.Itoa(CurrentSchemaVersion+1)+`}`), Default())
-	if err == nil || !strings.Contains(err.Error(), "unsupported configuration schema version") {
-		t.Fatalf("unexpected error: %v", err)
+func TestRepositoryConfigRejectsCapabilities(t *testing.T) {
+	repository := t.TempDir()
+	path := filepath.Join(repository, ".zsh-git-good.toml")
+	if err := os.WriteFile(path, []byte("[commit]\nconvention = \"conventional\"\ntypes = [\"feat\", \"fix\"]\nscopes = [\"api\", \"cli\"]\nscope_paths = [\"internal/api=api\", \"cmd=cli\"]\nline_length = 72\ncapitalization = \"sentence\"\nbody = \"optional\"\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-}
-
-func TestDecodeValidatesGlobalConfigurationSchema(t *testing.T) {
-	cfg, err := decode([]byte(`{"schema_version":1,"display":{"trace":true},"auto_apply_safe":true}`), Default())
-	if err != nil || !cfg.Display.Trace || !cfg.AutoApplySafe || !cfg.Display.Cause {
-		t.Fatalf("decoded configuration = %#v, %v", cfg, err)
+	policy, err := LoadRepositoryPolicy(repository)
+	if err != nil || policy.Version == "none" || policy.Convention != "conventional" || policy.LineLength != 72 || policy.Capitalization != "sentence" || len(policy.Types) != 2 || len(policy.Scopes) != 2 || len(policy.ScopePaths) != 2 {
+		t.Fatalf("policy = %#v, err = %v", policy, err)
 	}
-	for _, data := range []string{
-		`null`,
-		`{"schema_version":null}`,
-		`{"schema_version":"1"}`,
-		`{"auto_apply_safe":"true"}`,
-		`{"undo_ttl_seconds":0}`,
-		`{"unexpected":true}`,
-		`{"display":{"unexpected":true}}`,
-		`{"rule_exceptions":[{"id":"Invalid","command":"git status"}]}`,
-		`{"rule_exceptions":[{"id":"skip-one","command":"git status"},{"id":"skip-two","command":"git status"}]}`,
+	for _, content := range []string{
+		"[provider]\nendpoint = \"https://example.invalid\"\n",
+		"[permissions]\nactivity = true\n",
+		"[cloud]\nopenai = [\"staged_diff\"]\n",
+		"[commit]\ntypes = 3\n",
+		"[commit]\nscope_paths = [\"../secret=api\"]\n",
+		"[commit]\nscopes = [\"api\"]\nscope_paths = [\"cmd=cli\"]\n",
+		"[commit]\ncapitalization = \"run this\"\n",
 	} {
-		if _, err := decode([]byte(data), Default()); err == nil {
-			t.Fatalf("accepted invalid configuration %s", data)
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadRepositoryPolicy(repository); err == nil {
+			t.Fatalf("unsafe repository config accepted: %q", content)
 		}
 	}
 }
 
-func TestWriteAtomicallyReplacesConfigWithRestrictivePermissions(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.json")
-	if err := os.WriteFile(path, []byte(`{"mode":"off"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	cfg := Default()
-	cfg.Mode = "rewrite"
-	if err := Write(path, cfg); err != nil {
-		t.Fatal(err)
-	}
-	loaded, err := LoadGlobal(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if loaded.Mode != "rewrite" {
-		t.Fatalf("mode = %q, want rewrite", loaded.Mode)
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
-		t.Fatalf("permissions = %o, want 600", info.Mode().Perm())
-	}
-	entries, err := os.ReadDir(filepath.Dir(path))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".config.json.tmp-") {
-			t.Fatalf("temporary file remains: %s", entry.Name())
+func TestCycleKeymaps(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	for _, value := range []string{`["emacs", "viins"]`, `["vicmd"]`, `[]`, `["main"]`, `["viins", "viins"]`, `"viins"`} {
+		if err := os.WriteFile(path, []byte("[zsh]\ncycle_keymaps = "+value), 0600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := Load()
+		valid := value == `["emacs", "viins"]` || value == `["vicmd"]`
+		if (err == nil) != valid {
+			t.Fatalf("%s: %v", value, err)
 		}
 	}
 }
 
-func TestWriteRemovesTemporaryFileAfterRenameFailure(t *testing.T) {
-	directory := t.TempDir()
-	if err := Write(directory, Default()); err == nil {
-		t.Fatal("expected rename failure")
+func TestOllamaBudgetValidation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	for _, value := range []string{`context_tokens = 8192`, `output_tokens = 512`, `keep_alive = "0s"`, `cold_timeout = "45s"`, `context_tokens = 1`, `output_tokens = 0`, `keep_alive = "-1s"`, `cold_timeout = "5m"`} {
+		if err := os.WriteFile(path, []byte("[ollama]\n"+value), 0600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := Load()
+		valid := strings.Contains(value, "8192") || strings.Contains(value, "512") || strings.Contains(value, `"0s"`) || strings.Contains(value, `"45s"`)
+		if (err == nil) != valid {
+			t.Fatalf("%s: %v", value, err)
+		}
 	}
-	entries, err := os.ReadDir(filepath.Dir(directory))
-	if err != nil {
+}
+
+func TestRepositoryOverridesOnlySpecifiedUserMessagePreferences(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	if err := os.WriteFile(path, []byte("[commit]\ncapitalization = 'sentence'\nline_length = 72\nscopes = ['api']\nscope_paths = ['internal/api=api']\nscope_mode = 'none'\n[suggestions]\ncandidate_count = 2\n[learning]\nenabled = false\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), "."+filepath.Base(directory)+".tmp-") {
-			t.Fatalf("temporary file remains: %s", entry.Name())
+	repository := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repository, ".zsh-git-good.toml"), []byte("[commit]\nline_length = 90\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policy, err := LoadRepositoryPolicy(repository)
+	if err != nil || policy.LineLength != 90 || policy.Capitalization != "sentence" || policy.ScopeMode != "none" || len(policy.ScopePaths) != 1 || policy.ScopePaths[0].Scope != "api" {
+		t.Fatalf("incorrect message preference layering: %+v %v", policy, err)
+	}
+	for _, content := range []string{"[suggestions]\ncandidate_count = 0\n", "[commit]\ncapitalization = 'title'\n", "[learning]\nenabled = 1\n", "[commit]\nscope_mode = 'shell'\n"} {
+		if _, err := Parse([]byte(content), "prefs.toml"); err == nil {
+			t.Fatalf("invalid customization accepted: %s", content)
 		}
+	}
+}
+
+func TestLoadRejectsNamedPipeWithoutHanging(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := syscall.Mkfifo(path, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ZSH_GIT_GOOD_CONFIG", path)
+	done := make(chan error, 1)
+	go func() { _, err := Load(); done <- err }()
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("pipe config accepted")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("config load blocked on a named pipe")
 	}
 }

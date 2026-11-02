@@ -1,4 +1,8 @@
-/dist/
-/coverage.out
-/solomon
 AGENTS.md
+.build/
+/dist/
+/evaluation-private/
+*.zsh-git-good-evaluation.json
+*.zsh-git-good-evaluation.md
+
+__pycache__/

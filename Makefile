@@ -1,36 +1,93 @@
-BIN ?= solomon
-BUILD_FLAGS := -trimpath -buildvcs=false -mod=readonly
+GO ?= go
+BUILD_DIR ?= .build
+BINARY := $(BUILD_DIR)/zsh-git-good
 VERSION ?= dev
-COMMIT ?= unknown
-LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT)
+COMMIT ?= $(shell git rev-parse --verify HEAD 2>/dev/null || printf unknown)
+DIST ?= dist/release-snapshot
+LDFLAGS := -s -w -buildid= -X main.version=$(VERSION) -X main.commit=$(COMMIT)
+BUILD_FLAGS := -trimpath -buildvcs=false -ldflags "$(LDFLAGS)"
+TEST_ENV := python3 scripts/test-environment.py --binary "$(abspath $(BINARY))" --
 
-.PHONY: build test vet ci latency-gate verify-local benchmark-daemon benchmark-pre-execution benchmark-path-cache benchmark-pack-loading
+.PHONY: all build test test-all test-lifecycle test-setup test-packaging test-go test-zsh test-eval test-reliability test-nvim test-install test-integration test-dogfood test-soak test-live-ollama fuzz lint bench release-snapshot clean
+
+all: build
 
 build:
-	go build $(BUILD_FLAGS) -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/solomon
+	mkdir -p $(BUILD_DIR)
+	$(GO) build $(BUILD_FLAGS) -o $(BINARY) ./cmd/zsh-git-good
 
 test:
-	go test -race ./...
+	python3 scripts/test-environment.py --binary "$(abspath $(BINARY))" -- $(MAKE) test-all
 
-vet:
-	go vet ./...
+test-all: test-packaging test-setup test-go test-zsh test-eval test-nvim test-install test-dogfood test-soak test-lifecycle
 
-ci: vet test build
+test-lifecycle: build
+	ZSH_GIT_GOOD_BIN=$(abspath $(BINARY)) python3 tests/lifecycle.py
 
-latency-gate:
-	go run ./cmd/latency-gate
+test-go:
+	$(GO) test ./...
 
-verify-local:
-	sh scripts/verify-local.sh
+test-zsh: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/shell-contract.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/integration.zsh
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
 
-benchmark-daemon:
-	go test -run '^$$' -bench '^BenchmarkWarmCuratedPreSend$$' -benchmem ./internal/daemon
+test-eval: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/evaluation.zsh
 
-benchmark-pre-execution:
-	go test -run '^$$' -bench '^BenchmarkPreExecutionLatency$$' -benchmem ./internal/diagnose
+test-reliability: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/reliability.zsh
 
-benchmark-path-cache:
-	go test -run '^$$' -bench '^BenchmarkPATHIndexCache$$' -benchmem ./internal/diagnose
+test-nvim:
+	@if command -v nvim >/dev/null 2>&1; then \
+		$(TEST_ENV) nvim --headless -u NONE -l tests/neovim.lua "$(abspath .)"; \
+	else \
+		echo "skipping Neovim adapter test: nvim is unavailable"; \
+	fi
 
-benchmark-pack-loading:
-	go test -run '^$$' -bench '^BenchmarkLoadBundledPacks$$' -benchmem ./internal/packs
+test-packaging:
+	python3 -m unittest discover -s tests -p '*_test.py'
+
+test-setup: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/setup.zsh
+
+test-install: build
+	$(TEST_ENV) zsh tests/install.zsh "$(abspath .)"
+
+test-integration: test-zsh test-eval test-nvim test-dogfood
+
+test-dogfood: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/dogfood.zsh
+
+test-soak: build
+	$(TEST_ENV) env ZSH_GIT_GOOD_BIN="$(abspath $(BINARY))" zsh tests/soak.zsh
+
+# This is deliberately opt-in: it needs a separately started loopback Ollama
+# runtime and an already downloaded model named by ZSH_GIT_GOOD_LIVE_OLLAMA_MODEL.
+test-live-ollama: build
+	ZSH_GIT_GOOD_BIN=$(abspath $(BINARY)) zsh tests/live-ollama.zsh
+
+fuzz:
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzParseAndSuggestion -fuzztime=$${FUZZ_TIME:-3s} ./internal/command
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzReadFrames -fuzztime=$${FUZZ_TIME:-3s} ./internal/ipc
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzStructuredResponse -fuzztime=$${FUZZ_TIME:-3s} ./internal/provider
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzDeclarativeValues -fuzztime=$${FUZZ_TIME:-3s} ./internal/config
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzEventWireFormat -fuzztime=$${FUZZ_TIME:-3s} ./internal/activity
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzRemoteNormalizationAndImport -fuzztime=$${FUZZ_TIME:-3s} ./internal/learning
+	$(GO) test -parallel=1 -run '^$$' -fuzz FuzzRedactionAndBounds -fuzztime=$${FUZZ_TIME:-3s} ./internal/repoctx
+
+lint:
+	$(GO) vet ./...
+	test -z "$$($(GO)fmt -l $$(find cmd internal -name '*.go' -print))"
+	zsh -n tests/setup.zsh tests/shell-contract.zsh zsh-git-good.plugin.zsh tests/integration.zsh tests/reliability.zsh tests/evaluation.zsh tests/install.zsh tests/dogfood.zsh tests/soak.zsh tests/live-ollama.zsh
+	sh -n scripts/install-binary.sh scripts/install.sh scripts/install-release.sh scripts/uninstall.sh scripts/checksums.sh scripts/sbom.sh scripts/release-snapshot.sh
+	! rg -n '\beval\b|function[[:space:]]+git\b' zsh-git-good.plugin.zsh cmd internal
+
+bench:
+	$(GO) test -run '^$$' -bench . -benchmem ./internal/command ./internal/gitstate ./internal/candidate ./internal/daemon ./cmd/zsh-git-good
+
+release-snapshot:
+	sh scripts/release-snapshot.sh --source "$(abspath .)" --output "$(abspath $(DIST))" --version "$(VERSION)" --commit "$(COMMIT)"
+
+clean:
+	rm -rf $(BUILD_DIR)

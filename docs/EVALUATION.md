@@ -1,0 +1,187 @@
+# Evaluation
+
+The evaluation harness measures candidate behavior before a local model becomes
+part of the default path. It runs outside ZLE, but each command evaluation uses
+the daemon's actual background context, provider, grounding, ranking, private
+cache-publication, and exact-lookup code with a temporary private cache. It
+does not open a Unix socket; a separate foreground-daemon rehearsal remains
+necessary to validate socket service behavior. The built-in corpus is public,
+synthetic, versioned as `v3`, and covers
+feature work, bug fixes, refactors, tests, documentation, dependencies,
+renames, deletions, mixed and ambiguous changes, partial staging, misleading
+comments, shell-metacharacter filenames, untrusted issue-like identifiers, and
+staged prompt-like text. Eight development cases and nineteen held-out cases are
+separate so prompt iteration cannot be reported only on the cases used to
+motivate it.
+
+Run the deterministic CI corpus with:
+
+```zsh
+make test-eval
+zsh-git-good evaluate --fixtures --json
+zsh-git-good evaluate --fixtures --partition development --json
+zsh-git-good evaluate --fixtures --partition held-out --json
+```
+
+The command writes a JSON report and a Markdown report to
+`$XDG_STATE_HOME/zsh-git-good/evaluations` (or the private fallback
+`~/.local/state/zsh-git-good/evaluations`). `ZSH_GIT_GOOD_STATE_DIR` is a
+test/troubleshooting override. Reports and their parent directories use private
+permissions. `--output-dir` is available when an explicitly chosen private
+location is required.
+
+To replay a local repository without copying its history into this repository:
+
+```zsh
+zsh-git-good evaluate --repo /absolute/path/to/repository --limit 50 --json
+```
+
+The runner selects non-merge commits with one parent, reads the parent tree
+through Git's local object database, and applies each parent-to-commit patch to
+a temporary staged index. It does not check a historical working tree into this
+project and it does not write raw diffs into either report. The original commit
+subject is retained only in the private local report as a review reference.
+Merge commits are skipped and reported as such.
+
+Use `--partition development` only while diagnosing a categorized failure.
+Record any prompt change, then run `--partition held-out` for the reported
+comparison. `--partition all` remains regression coverage; it is not a
+held-out quality result. `--provider ollama --model <already-installed-model>`
+first discovers the already-local model to record its tag digest and size, then
+uses the daemon pipeline above. It never pulls a model and forces fallback to
+`none`, so a deterministic candidate cannot be counted as model output.
+
+## Live local-model result
+
+On 2026-09-06, the public development partition was run through a foreground,
+loopback-only Fedora Ollama runtime with the frozen `v1` prompt and 10-second
+deadline. `qwen2.5-coder:0.5b`, `qwen2.5-coder:1.5b`, and `qwen2.5:0.5b` all
+produced zero prepared candidates and a 100% generation-error rate. Their
+timeout rates were respectively 75%, 100%, and 43.75% in the clean
+single-model rerun for the general model. The detailed digests, latency,
+runtime interruption, RSS samples, and rejection rationale are in
+[EXECPLAN-LIVE-MODEL.md](EXECPLAN-LIVE-MODEL.md).
+
+No prompt change, held-out run, or human preference claim follows from failed
+development gating. The deterministic provider remains the default; the tested
+Ollama models are not recommended on this host under the product's 10-second
+background deadline.
+
+## Metrics and interpretation
+
+Each report records the corpus SHA-256, provider/model/runtime/quantization/
+prompt metadata, local model digest and size when available, provider settings,
+evaluator timeout and commit limit, OS/architecture/CPU count/Go version, and
+cold/warm average, p50, and p95 generation timing. Process allocation is an
+approximate measurement, not a model-memory claim.
+
+Automatic metrics cover:
+
+- output/schema validity;
+- Conventional Commit format when a fixture declares it applicable;
+- allowed scope and subject-length compliance when declared;
+- changed-component identification and unsupported component names;
+- unsupported issue identifiers, test-outcome claims, and behavioral-claim tokens;
+- structural grounding coverage across the automatic shape/component/claim
+  checks;
+- actual daemon-grounding coverage for candidates published through the
+  conservative ranking policy;
+- exact candidate-sequence equality between each cold and immediate warm run;
+- candidate diversity;
+- cold and warm latency, approximate allocation, timeout rate, and error rate.
+
+The unsupported-component, issue, and behavioral-claim checks are bounded
+token/evidence checks. They are not semantic proof that a change fixes,
+prevents, or otherwise causes a behavior. Historical subjects are not an
+unquestionable ground truth, and string similarity is deliberately not scored.
+Structural grounding coverage is likewise a report-level proxy over candidate
+shape, changed components, and unsupported tokens; it is not a substitute for
+the daemon's evidence-ID grounding diagnostics or semantic proof. The Markdown
+report labels this manual-review boundary explicitly. A report does not prove
+semantic correctness, user preference, peak model memory, CPU use,
+socket-host behavior, or terminal pixels.
+
+No private corpus directory is created or used by default. Known local
+evaluation-report patterns are ignored by Git, while default reports are kept
+outside the repository. Do not pass a repository working tree as
+`--output-dir` when evaluating private history.
+
+## Frozen daemon-path deterministic control
+
+The frozen 2026-09-06 Fedora control is corpus `v2`, SHA-256
+`99cbe770cb27d2e9e1a99f74e8d16fb6cb5b88e50f5c3cfd8a417d6287fd6361`, prompt
+`v1`, deterministic provider, conservative grounding, `fallback = "none"`,
+and a 10-second evaluator deadline. Development had 8 cases/24 candidates and
+held-out had 7/21. Every automatic shape, policy, issue/test-outcome/
+behavioral-claim, structural-grounding, daemon-grounding, and repeated-run
+check passed in both partitions; timeout and error rates were zero.
+
+Development averaged 31.49 ms cold (p50 33.27, p95 34.75) and 30.66 ms warm
+(p50 32.29, p95 33.90), with 20,776,536 bytes approximate aggregate process
+allocation. Held-out averaged 33.86 ms cold (p50 33.74, p95 36.27) and 33.34
+ms warm (p50 33.94, p95 34.83), with 20,124,376 bytes approximate aggregate
+allocation. These are control measurements through the daemon pipeline, not
+local-model quality or model-memory evidence. The older direct-provider RC1
+measurements are retained in execution history but are not comparable controls
+because they bypassed publication and ranking.
+
+A separate local-history replay of 20 eligible project commits produced 60
+candidates with no generation errors or timeout. It reported 80% changed-
+component/structural-proxy coverage. The four misses changed only repository
+root documentation/workflow or Lua-adapter paths, for which the deterministic
+candidate generator had no component scope. This is retained as a diagnostic,
+not tuned away and not a model-quality score.
+
+These results validate the harness and deterministic fallback only. They do
+not establish semantic usefulness, human preference, or local-model quality.
+No prompt was iterated against the held-out partition. A local-model selection
+requires a recorded development comparison, three held-out runs, zero
+malformed/unpublished/timeout/error results under the selected operational
+timeout, no unsupported claims, manual review of factual adequacy, and an
+improvement over this control. The complete acceptance criteria and approval
+boundary are in [EXECPLAN-LIVE-MODEL.md](EXECPLAN-LIVE-MODEL.md). No model
+satisfies that evidence standard because each tested model failed the
+development operational and structured-output gates.
+
+## Versioned expanded corpus
+
+The new default corpus is `v3`: 8 development and 19 held-out cases. Its
+additional held-out scenarios cover Go/JavaScript version bumps, Python,
+TypeScript and Rust declarations, root documentation, workflows, assets,
+lockfiles, Unicode paths, long paths and a staged/unstaged dependency-version
+split. The original `v2` bytes remain unchanged and are selectable with
+`evaluate --fixtures --corpus v2`. Select the corpus explicitly when reproducing
+frozen evidence; results across corpus versions are not directly comparable.
+
+Private JSON reports now retain the prepared candidate texts for explicit
+human comparison and per-case cold/warm provider timings when available. They
+still omit raw staged diffs, prompts and model responses. Candidate text, like
+reference subjects, can contain private repository information; report storage
+continues to use private directories/files.
+
+## Private blinded human comparison
+
+Generate two evaluation reports over the identical corpus version and partition,
+for example `--provider deterministic-baseline` and `--provider deterministic`.
+Then run:
+
+```zsh
+zsh-git-good review prepare --left /private/baseline.json --right /private/new.json --output-dir /private/review
+zsh-git-good review summarize --packet /private/review/packet.json --key /private/review/key.json --ratings /private/review/ratings.json
+```
+
+Give only `packet.json` to the reviewer; keep `key.json` separate until scoring.
+Labels are randomized independently per case and omit provider metadata. Public
+synthetic fixture context is included when its corpus digest matches. History
+replays refer to the source commit so the reviewer can inspect its diff locally.
+Do not treat the original commit subject as unquestionable ground truth.
+
+Copy `ratings.example.json` to a new `ratings.json` and fill every score from
+actual review. Empty template values are rejected. Factual adequacy and
+specificity use 1–5 scores; editing effort is characters edited, and time to a
+usable message is measured in seconds. Preference is `A`, `B`, `tie`, or
+`neither`. Summaries report completion explicitly and reject duplicate/unknown
+cases, invalid scores and mismatched packet/key pairs. Private 0700/0600 storage
+and overwrite refusal preserve review evidence. This workflow records explicit
+human measurements only; it does not infer suggestion acceptance from commits
+or mix ratings with local learning statistics.

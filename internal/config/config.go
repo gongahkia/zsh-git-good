@@ -1,544 +1,588 @@
+// Package config validates and edits declarative user and repository preferences.
 package config
 
 import (
-	"bytes"
-	"encoding/json"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
+)
 
-	"github.com/gongahkia/solomon/internal/filesystem"
-	"github.com/gongahkia/solomon/internal/securetemp"
+var policyName = regexp.MustCompile(`^[a-z][a-z0-9._/-]{0,39}$`)
+
+const (
+	DefaultIdleTimeout    = 15 * time.Minute
+	ProviderPromptVersion = "v2"
 )
 
 const (
-	CurrentSchemaVersion         = 7
-	maxRuleExceptionCommandBytes = 8 << 10
-	defaultLearningRetentionDays = 30
-	maxLearningRetentionDays     = 90
-	defaultUndoTTLSeconds        = 30
-	maxUndoTTLSeconds            = 300
+	DefaultCacheMaxRecords = 512
+	DefaultCacheMaxBytes   = 32 * 1024 * 1024
+	DefaultCacheMaxAge     = 7 * 24 * time.Hour
 )
 
-type RuleException struct {
-	ID      string `json:"id"`
-	Command string `json:"command"`
+type Settings struct {
+	IdleTimeout         time.Duration `config:"daemon.idle_timeout"`
+	MaxRepositories     int           `config:"daemon.max_active_repositories"`
+	MaxGenerationJobs   int           `config:"daemon.max_generation_concurrency"`
+	CacheMaxRecords     int           `config:"cache.max_records"`
+	CacheMaxBytes       int64         `config:"cache.max_bytes"`
+	CacheMaxAge         time.Duration `config:"cache.max_age"`
+	Provider            string        `config:"provider.name"`
+	ProviderModel       string        `config:"provider.model"`
+	ProviderTimeout     time.Duration `config:"provider.timeout"`
+	OllamaContextTokens int           `config:"ollama.context_tokens"`
+	OllamaOutputTokens  int           `config:"ollama.output_tokens"`
+	OllamaKeepAlive     time.Duration `config:"ollama.keep_alive"`
+	OllamaColdTimeout   time.Duration `config:"ollama.cold_timeout"`
+	ProviderFallback    string        `config:"provider.fallback"`
+	GroundingPolicy     string        `config:"grounding.ambiguity"`
+	ActivityRetention   time.Duration `config:"activity.retention"`
+	ActivityMaxEvents   int           `config:"activity.max_events"`
+	CycleKeybinding     string        `config:"zsh.cycle_keybinding"`
+	CycleKeymaps        []string      `config:"zsh.cycle_keymaps"`
+	Verbose             bool          `config:"diagnostics.verbose"`
+	MessageConvention   string        `config:"commit.convention"`
+	MessageTypes        []string      `config:"commit.types"`
+	MessageScopes       []string      `config:"commit.scopes"`
+	MessageScopePaths   []string      `config:"commit.scope_paths"`
+	MessageLineLength   int           `config:"commit.line_length"`
+	MessageCaps         string        `config:"commit.capitalization"`
+	MessageBody         string        `config:"commit.body"`
+	ScopeMode           string        `config:"commit.scope_mode"`
+	CandidateCount      int           `config:"suggestions.candidate_count"`
+	LearningEnabled     bool          `config:"learning.enabled"`
+	Version             string
 }
 
-type Config struct {
-	SchemaVersion int     `json:"schema_version"`
-	Mode          string  `json:"mode"`
-	Display       Display `json:"display"`
-	AutoApplySafe bool    `json:"auto_apply_safe"`
-	// LocalHistoryEnabled is retained only to migrate pre-v6 configuration.
-	// The product has no history persistence or ranking backend.
-	LocalHistoryEnabled      bool            `json:"local_history_enabled,omitempty"`
-	CuratedPacksEnabled      bool            `json:"curated_packs_enabled"`
-	RiskInterrupt            bool            `json:"risk_interrupt"`
-	LocalLearningEnabled     bool            `json:"local_learning_enabled"`
-	LearningRetentionDays    int             `json:"learning_retention_days"`
-	LearnedRuleActionCeiling string          `json:"learned_rule_action_ceiling"`
-	UndoEnabled              bool            `json:"undo_enabled"`
-	UndoTTLSeconds           int             `json:"undo_ttl_seconds"`
-	RuleExceptions           []RuleException `json:"rule_exceptions,omitempty"`
+func Default() Settings {
+	return Settings{
+		IdleTimeout:         DefaultIdleTimeout,
+		MaxRepositories:     32,
+		MaxGenerationJobs:   2,
+		CacheMaxRecords:     DefaultCacheMaxRecords,
+		CacheMaxBytes:       DefaultCacheMaxBytes,
+		CacheMaxAge:         DefaultCacheMaxAge,
+		Provider:            "deterministic",
+		ProviderTimeout:     8 * time.Second,
+		OllamaContextTokens: 4096,
+		OllamaOutputTokens:  256,
+		OllamaKeepAlive:     5 * time.Minute,
+		OllamaColdTimeout:   30 * time.Second,
+		ProviderFallback:    "deterministic",
+		GroundingPolicy:     "conservative",
+		ActivityRetention:   30 * time.Minute,
+		ActivityMaxEvents:   256,
+		CycleKeybinding:     "^Xg",
+		CycleKeymaps:        []string{"emacs", "viins"},
+		MessageConvention:   "conventional",
+		MessageTypes:        []string{},
+		MessageScopes:       []string{},
+		MessageScopePaths:   []string{},
+		MessageLineLength:   120,
+		MessageCaps:         "lower",
+		MessageBody:         "optional",
+		ScopeMode:           "auto",
+		CandidateCount:      3,
+		LearningEnabled:     true,
+		Version:             "default",
+	}
 }
 
-type Display struct {
-	Cause       bool `json:"cause"`
-	Change      bool `json:"change"`
-	Confidence  bool `json:"confidence"`
-	Risk        bool `json:"risk"`
-	Consequence bool `json:"consequence"`
-	Trace       bool `json:"trace"`
+func configPath() string {
+	if value := os.Getenv("ZSH_GIT_GOOD_CONFIG"); value != "" {
+		return value
+	}
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		base = filepath.Join(home, ".config")
+	}
+	return filepath.Join(base, "zsh-git-good", "config.toml")
 }
 
-type Paths struct {
-	Home    func() (string, error)
-	CWD     func() (string, error)
-	Env     func(string) string
-	Environ func() []string
+// Load never executes configuration. Unknown keys are errors so a repository
+// cannot silently gain a capability as the format evolves.
+func Load() (Settings, error) {
+	settings := Default()
+	path := configPath()
+	if path == "" {
+		return settings, nil
+	}
+	content, err := readContent(path)
+	if os.IsNotExist(err) {
+		return settings, nil
+	}
+	if err != nil {
+		return Settings{}, fmt.Errorf("read config: %w", err)
+	}
+	return Parse(content, path)
 }
 
-func Default() Config {
-	return Config{SchemaVersion: CurrentSchemaVersion, Mode: "hint", CuratedPacksEnabled: true, LearningRetentionDays: defaultLearningRetentionDays, LearnedRuleActionCeiling: "hint", UndoEnabled: true, UndoTTLSeconds: defaultUndoTTLSeconds, Display: Display{Cause: true, Change: true, Confidence: true, Risk: true, Consequence: true}}
+// Path is the effective user configuration location, including XDG overrides.
+func Path() string { return configPath() }
+
+// Parse validates a document without reading or changing the environment.
+func Parse(content []byte, path string) (settings Settings, resultErr error) {
+	settings = Default()
+	defer func() { resultErr = withLocation(resultErr, content, path) }()
+	section, values, err := parse(string(content), allowedKeys(false))
+	_ = section
+	if err != nil {
+		return Settings{}, fmt.Errorf("invalid config %s: %w", path, err)
+	}
+	if value, ok := values["daemon.idle_timeout"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: daemon.idle_timeout must be a string duration", path)
+		}
+		settings.IdleTimeout, err = time.ParseDuration(unquote(value))
+		if err != nil || settings.IdleTimeout <= 0 {
+			return Settings{}, fmt.Errorf("invalid config %s: daemon.idle_timeout must be positive", path)
+		}
+	}
+	if value, ok := values["daemon.max_active_repositories"]; ok {
+		settings.MaxRepositories, err = strconv.Atoi(value)
+		if err != nil || settings.MaxRepositories < 1 || settings.MaxRepositories > 256 {
+			return Settings{}, fmt.Errorf("invalid config %s: daemon.max_active_repositories must be 1..256", path)
+		}
+	}
+	if value, ok := values["daemon.max_generation_concurrency"]; ok {
+		settings.MaxGenerationJobs, err = strconv.Atoi(value)
+		if err != nil || settings.MaxGenerationJobs < 1 || settings.MaxGenerationJobs > 16 {
+			return Settings{}, fmt.Errorf("invalid config %s: daemon.max_generation_concurrency must be 1..16", path)
+		}
+	}
+	if value, ok := values["cache.max_records"]; ok {
+		settings.CacheMaxRecords, err = strconv.Atoi(value)
+		if err != nil || settings.CacheMaxRecords < 1 || settings.CacheMaxRecords > 4096 {
+			return Settings{}, fmt.Errorf("invalid config %s: cache.max_records must be 1..4096", path)
+		}
+	}
+	if value, ok := values["cache.max_bytes"]; ok {
+		settings.CacheMaxBytes, err = strconv.ParseInt(value, 10, 64)
+		if err != nil || settings.CacheMaxBytes < 64*1024 || settings.CacheMaxBytes > 1024*1024*1024 {
+			return Settings{}, fmt.Errorf("invalid config %s: cache.max_bytes must be 65536..1073741824", path)
+		}
+	}
+	if value, ok := values["cache.max_age"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: cache.max_age must be a string duration", path)
+		}
+		settings.CacheMaxAge, err = time.ParseDuration(unquote(value))
+		if err != nil || settings.CacheMaxAge <= 0 || settings.CacheMaxAge > 365*24*time.Hour {
+			return Settings{}, fmt.Errorf("invalid config %s: cache.max_age must be positive and at most 8760h", path)
+		}
+	}
+	if value, ok := values["provider.name"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.name must be a string", path)
+		}
+		settings.Provider = unquote(value)
+		if settings.Provider != "deterministic" && settings.Provider != "deterministic-baseline" && settings.Provider != "ollama" && settings.Provider != "openai" {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.name must be deterministic, deterministic-baseline, ollama, or openai", path)
+		}
+	}
+	if value, ok := values["provider.model"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.model must be a string", path)
+		}
+		settings.ProviderModel = unquote(value)
+		if !safeProviderModel(settings.ProviderModel) {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.model contains unsupported characters", path)
+		}
+	}
+	if value, ok := values["provider.timeout"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.timeout must be a string duration", path)
+		}
+		settings.ProviderTimeout, err = time.ParseDuration(unquote(value))
+		if err != nil || settings.ProviderTimeout < time.Second || settings.ProviderTimeout > time.Minute {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.timeout must be 1s..1m", path)
+		}
+	}
+	for key, target := range map[string]*int{"ollama.context_tokens": &settings.OllamaContextTokens, "ollama.output_tokens": &settings.OllamaOutputTokens} {
+		if value, ok := values[key]; ok {
+			parsed, parseErr := strconv.Atoi(value)
+			minimum, maximum := 1024, 32768
+			if key == "ollama.output_tokens" {
+				minimum, maximum = 64, 2048
+			}
+			if parseErr != nil || parsed < minimum || parsed > maximum {
+				return Settings{}, fmt.Errorf("%s must be %d..%d", key, minimum, maximum)
+			}
+			*target = parsed
+		}
+	}
+	for key, target := range map[string]*time.Duration{"ollama.keep_alive": &settings.OllamaKeepAlive, "ollama.cold_timeout": &settings.OllamaColdTimeout} {
+		if value, ok := values[key]; ok {
+			if !quoted(value) {
+				return Settings{}, fmt.Errorf("%s must be a string duration", key)
+			}
+			parsed, parseErr := time.ParseDuration(unquote(value))
+			minimum, maximum := time.Duration(0), 30*time.Minute
+			if key == "ollama.cold_timeout" {
+				minimum, maximum = time.Second, 2*time.Minute
+			}
+			if parseErr != nil || parsed < minimum || parsed > maximum {
+				return Settings{}, fmt.Errorf("%s duration out of bounds", key)
+			}
+			*target = parsed
+		}
+	}
+	if value, ok := values["provider.fallback"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.fallback must be a string", path)
+		}
+		settings.ProviderFallback = unquote(value)
+		if settings.ProviderFallback != "deterministic" && settings.ProviderFallback != "none" {
+			return Settings{}, fmt.Errorf("invalid config %s: provider.fallback must be deterministic or none", path)
+		}
+	}
+	if (settings.Provider == "ollama" || settings.Provider == "openai") && settings.ProviderModel == "" {
+		return Settings{}, fmt.Errorf("invalid config %s: provider.model is required for %s", path, settings.Provider)
+	}
+	if settings.Provider == "openai" && settings.ProviderFallback != "none" {
+		return Settings{}, fmt.Errorf("invalid config %s: provider.fallback must be none for openai", path)
+	}
+	if value, ok := values["grounding.ambiguity"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: grounding.ambiguity must be a string", path)
+		}
+		settings.GroundingPolicy = unquote(value)
+		if settings.GroundingPolicy != "conservative" && settings.GroundingPolicy != "quiet" && settings.GroundingPolicy != "visible" && settings.GroundingPolicy != "hintable" {
+			return Settings{}, fmt.Errorf("invalid config %s: grounding.ambiguity must be conservative, quiet, visible, or hintable", path)
+		}
+	}
+	if value, ok := values["activity.retention"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: activity.retention must be a string duration", path)
+		}
+		settings.ActivityRetention, err = time.ParseDuration(unquote(value))
+		if err != nil || settings.ActivityRetention < time.Minute || settings.ActivityRetention > 24*time.Hour {
+			return Settings{}, fmt.Errorf("invalid config %s: activity.retention must be 1m..24h", path)
+		}
+	}
+	if value, ok := values["activity.max_events"]; ok {
+		settings.ActivityMaxEvents, err = strconv.Atoi(value)
+		if err != nil || settings.ActivityMaxEvents < 1 || settings.ActivityMaxEvents > 4096 {
+			return Settings{}, fmt.Errorf("invalid config %s: activity.max_events must be 1..4096", path)
+		}
+	}
+	if value, ok := values["zsh.cycle_keybinding"]; ok {
+		if !quoted(value) {
+			return Settings{}, fmt.Errorf("invalid config %s: zsh.cycle_keybinding must be a string", path)
+		}
+		settings.CycleKeybinding = unquote(value)
+		if settings.CycleKeybinding == "" {
+			return Settings{}, fmt.Errorf("invalid config %s: zsh.cycle_keybinding may not be empty", path)
+		}
+	}
+	if value, ok := values["zsh.cycle_keymaps"]; ok {
+		settings.CycleKeymaps, err = policyArray(value, "zsh.cycle_keymaps")
+		if err != nil || len(settings.CycleKeymaps) == 0 {
+			return Settings{}, fmt.Errorf("zsh.cycle_keymaps must be a nonempty array of emacs, viins, or vicmd")
+		}
+		seen := map[string]bool{}
+		for _, keymap := range settings.CycleKeymaps {
+			if seen[keymap] || (keymap != "emacs" && keymap != "viins" && keymap != "vicmd") {
+				return Settings{}, fmt.Errorf("invalid or repeated zsh.cycle_keymaps entry %q", keymap)
+			}
+			seen[keymap] = true
+		}
+	}
+	if value, ok := values["diagnostics.verbose"]; ok {
+		settings.Verbose, err = strconv.ParseBool(value)
+		if err != nil {
+			return Settings{}, fmt.Errorf("invalid config %s: diagnostics.verbose must be true or false", path)
+		}
+	}
+	if value, ok := values["suggestions.candidate_count"]; ok {
+		settings.CandidateCount, err = strconv.Atoi(value)
+		if err != nil || settings.CandidateCount < 1 || settings.CandidateCount > 3 {
+			return Settings{}, errors.New("suggestions.candidate_count must be 1..3")
+		}
+	}
+	if value, ok := values["learning.enabled"]; ok {
+		settings.LearningEnabled, err = strconv.ParseBool(value)
+		if err != nil {
+			return Settings{}, errors.New("learning.enabled must be true or false")
+		}
+	}
+	messagePolicy, err := applyRepositoryValues(values, path, DefaultRepositoryPolicy())
+	if err != nil {
+		return Settings{}, err
+	}
+	settings.MessageConvention, settings.MessageTypes, settings.MessageScopes = messagePolicy.Convention, messagePolicy.Types, messagePolicy.Scopes
+	if value, exists := values["commit.scope_paths"]; exists {
+		settings.MessageScopePaths, _ = policyArray(value, "commit.scope_paths")
+	}
+	settings.MessageLineLength, settings.MessageCaps, settings.MessageBody, settings.ScopeMode = messagePolicy.LineLength, messagePolicy.Capitalization, messagePolicy.Body, messagePolicy.ScopeMode
+	sum := sha256.Sum256(content)
+	settings.Version = fmt.Sprintf("%x", sum[:])
+	return settings, nil
 }
 
-func (c Config) HasRuleException(command string) bool {
-	for _, exception := range c.RuleExceptions {
-		if exception.Command == command {
+type ScopeRule struct {
+	Path  string `json:"path"`
+	Scope string `json:"scope"`
+}
+
+// RepositoryPolicy is intentionally declarative: it cannot grant a privacy or
+// provider capability because its parser only accepts message-shape fields.
+type RepositoryPolicy struct {
+	Source         string      `json:"source"`
+	Version        string      `json:"version"`
+	Convention     string      `json:"convention"`
+	Types          []string    `json:"types"`
+	Scopes         []string    `json:"scopes"`
+	ScopePaths     []ScopeRule `json:"scope_paths"`
+	LineLength     int         `json:"line_length"`
+	Capitalization string      `json:"capitalization"`
+	Body           string      `json:"body"`
+	ScopeMode      string      `json:"scope_mode,omitempty"`
+}
+
+func DefaultRepositoryPolicy() RepositoryPolicy {
+	return RepositoryPolicy{Source: "built-in", Version: "none", Convention: "conventional", LineLength: 120, Capitalization: "lower", Body: "optional", ScopeMode: "auto"}
+}
+
+// LoadRepositoryPolicy accepts only message-policy settings. Repository TOML
+// cannot enable a provider or grant access to private data.
+func LoadRepositoryPolicy(root string) (RepositoryPolicy, error) {
+	settings, err := Load()
+	if err != nil {
+		return RepositoryPolicy{}, err
+	}
+	policy := settings.RepositoryDefaults()
+	return LoadRepositoryPolicyWithDefaults(root, policy)
+}
+
+// LoadRepositoryPolicyWithDefaults keeps explicitly configured evaluation
+// generators independent of ambient dogfooding preferences, while repository
+// policy remains the final message-shape override in both workflows.
+func LoadRepositoryPolicyWithDefaults(root string, policy RepositoryPolicy) (RepositoryPolicy, error) {
+	path := filepath.Join(root, ".zsh-git-good.toml")
+	content, err := readContent(path)
+	if os.IsNotExist(err) {
+		return policy, nil
+	}
+	if err != nil {
+		return RepositoryPolicy{}, fmt.Errorf("read repository config: %w", err)
+	}
+	return parseRepository(content, path, policy)
+}
+
+func readContent(path string) ([]byte, error) {
+	file, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() || info.Size() > MaxConfigBytes {
+		return nil, &Diagnostic{Path: path, Line: 1, Message: "expected a regular configuration file of at most 1 MiB"}
+	}
+	content, err := io.ReadAll(io.LimitReader(file, MaxConfigBytes+1))
+	if err == nil && len(content) > MaxConfigBytes {
+		err = &Diagnostic{Path: path, Line: 1, Message: "configuration exceeds 1 MiB"}
+	}
+	return content, err
+}
+
+func ParseRepository(content []byte, path string) (policy RepositoryPolicy, resultErr error) {
+	return parseRepository(content, path, DefaultRepositoryPolicy())
+}
+
+func parseRepository(content []byte, path string, policy RepositoryPolicy) (result RepositoryPolicy, resultErr error) {
+	defer func() { resultErr = withLocation(resultErr, content, path) }()
+	_, values, err := parse(string(content), allowedKeys(true))
+	if err != nil {
+		return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: %w", path, err)
+	}
+	result, resultErr = applyRepositoryValues(values, path, policy)
+	if resultErr != nil {
+		return result, resultErr
+	}
+	sum := sha256.Sum256(append([]byte(policy.Version+"\n"), content...))
+	result.Source, result.Version = path, fmt.Sprintf("%x", sum[:])
+	return result, nil
+}
+
+func applyRepositoryValues(values map[string]string, path string, policy RepositoryPolicy) (RepositoryPolicy, error) {
+	if value, ok := values["commit.convention"]; ok {
+		if !quoted(value) || unquote(value) != "conventional" {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.convention must be conventional", path)
+		}
+		policy.Convention = unquote(value)
+	}
+	if value, ok := values["commit.types"]; ok {
+		items, itemErr := policyArray(value, "commit.types")
+		if itemErr != nil {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: %w", path, itemErr)
+		}
+		for _, item := range items {
+			if !policyName.MatchString(item) {
+				return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.types contains an unsafe type", path)
+			}
+		}
+		policy.Types = items
+	}
+	if value, ok := values["commit.scopes"]; ok {
+		items, itemErr := policyArray(value, "commit.scopes")
+		if itemErr != nil {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: %w", path, itemErr)
+		}
+		for _, item := range items {
+			if !policyName.MatchString(item) {
+				return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.scopes contains an unsafe scope", path)
+			}
+		}
+		policy.Scopes = items
+	}
+	if value, ok := values["commit.scope_paths"]; ok {
+		items, itemErr := policyArray(value, "commit.scope_paths")
+		if itemErr != nil {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: %w", path, itemErr)
+		}
+		rules := make([]ScopeRule, 0, len(items))
+		for _, item := range items {
+			prefix, scope, found := strings.Cut(item, "=")
+			prefix = strings.TrimSuffix(strings.TrimSpace(filepath.ToSlash(prefix)), "/")
+			scope = strings.TrimSpace(scope)
+			if !found || prefix == "" || filepath.IsAbs(prefix) || strings.HasPrefix(prefix, "../") || strings.Contains(prefix, "/../") || strings.ContainsAny(prefix, "\\\x00") || !policyName.MatchString(scope) {
+				return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.scope_paths entries must be relative-prefix=scope", path)
+			}
+			rules = append(rules, ScopeRule{Path: prefix, Scope: scope})
+		}
+		for _, rule := range rules {
+			if len(policy.Scopes) > 0 && !contains(policy.Scopes, rule.Scope) {
+				return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.scope_paths scope must appear in commit.scopes", path)
+			}
+		}
+		sort.Slice(rules, func(left, right int) bool {
+			if len(rules[left].Path) == len(rules[right].Path) {
+				return rules[left].Path < rules[right].Path
+			}
+			return len(rules[left].Path) > len(rules[right].Path)
+		})
+		policy.ScopePaths = rules
+	}
+	for _, rule := range policy.ScopePaths {
+		if len(policy.Scopes) > 0 && !contains(policy.Scopes, rule.Scope) {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.scopes must include each inherited commit.scope_paths scope", path)
+		}
+	}
+	if value, ok := values["commit.line_length"]; ok {
+		length, lengthErr := strconv.Atoi(value)
+		if lengthErr != nil || length < 16 || length > 160 {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.line_length must be 16..160", path)
+		}
+		policy.LineLength = length
+	}
+	if value, ok := values["commit.capitalization"]; ok {
+		if !quoted(value) || (unquote(value) != "lower" && unquote(value) != "sentence") {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.capitalization must be lower or sentence", path)
+		}
+		policy.Capitalization = unquote(value)
+	}
+	if value, ok := values["commit.body"]; ok {
+		if !quoted(value) || (unquote(value) != "forbid" && unquote(value) != "optional" && unquote(value) != "required") {
+			return RepositoryPolicy{}, fmt.Errorf("invalid repository config %s: commit.body must be forbid, optional, or required", path)
+		}
+		policy.Body = unquote(value)
+	}
+	if value, ok := values["commit.scope_mode"]; ok {
+		if !quoted(value) || (unquote(value) != "auto" && unquote(value) != "none") {
+			return RepositoryPolicy{}, errors.New("commit.scope_mode must be auto or none")
+		}
+		policy.ScopeMode = unquote(value)
+	}
+	return policy, nil
+}
+
+// RepositoryDefaults layers user message preferences beneath repository policy.
+func (settings Settings) RepositoryDefaults() RepositoryPolicy {
+	policy := DefaultRepositoryPolicy()
+	policy.Convention, policy.Types, policy.Scopes = settings.MessageConvention, settings.MessageTypes, settings.MessageScopes
+	policy.LineLength, policy.Capitalization, policy.Body, policy.ScopeMode = settings.MessageLineLength, settings.MessageCaps, settings.MessageBody, settings.ScopeMode
+	for _, mapping := range settings.MessageScopePaths {
+		prefix, scope, _ := strings.Cut(mapping, "=")
+		policy.ScopePaths = append(policy.ScopePaths, ScopeRule{Path: strings.TrimSuffix(strings.TrimSpace(prefix), "/"), Scope: strings.TrimSpace(scope)})
+	}
+	sort.Slice(policy.ScopePaths, func(i, j int) bool {
+		if len(policy.ScopePaths[i].Path) == len(policy.ScopePaths[j].Path) {
+			return policy.ScopePaths[i].Path < policy.ScopePaths[j].Path
+		}
+		return len(policy.ScopePaths[i].Path) > len(policy.ScopePaths[j].Path)
+	})
+	if settings.Version != "default" {
+		policy.Source, policy.Version = configPath(), settings.Version
+	}
+	return policy
+}
+
+func RepositoryVersion(root string) (string, error) {
+	policy, err := LoadRepositoryPolicy(root)
+	if err != nil {
+		return "", err
+	}
+	return policy.Version, nil
+}
+
+func (policy RepositoryPolicy) AllowsType(value string) bool {
+	return len(policy.Types) == 0 || contains(policy.Types, value)
+}
+
+func (policy RepositoryPolicy) InferredScopes(paths []string) []string {
+	result := make([]string, 0, len(policy.ScopePaths))
+	seen := map[string]bool{}
+	for _, path := range paths {
+		path = strings.TrimPrefix(filepath.ToSlash(path), "./")
+		for _, rule := range policy.ScopePaths {
+			if path == rule.Path || strings.HasPrefix(path, rule.Path+"/") {
+				if !seen[rule.Scope] {
+					seen[rule.Scope] = true
+					result = append(result, rule.Scope)
+				}
+				break
+			}
+		}
+	}
+	sort.Strings(result)
+	return result
+}
+
+func contains(values []string, value string) bool {
+	for _, item := range values {
+		if item == value {
 			return true
 		}
 	}
 	return false
 }
 
-func (c *Config) AddRuleException(exception RuleException) error {
-	if err := validateRuleException(exception); err != nil {
-		return err
-	}
-	for _, existing := range c.RuleExceptions {
-		if existing.ID == exception.ID {
-			return fmt.Errorf("rule exception %q already exists", exception.ID)
-		}
-		if existing.Command == exception.Command {
-			return errors.New("rule exception command already exists")
-		}
-	}
-	c.RuleExceptions = append(c.RuleExceptions, exception)
-	return nil
-}
-
-func (c *Config) UpdateRuleException(id, command string) error {
-	if !validRuleExceptionID(id) {
-		return fmt.Errorf("invalid rule exception id %q", id)
-	}
-	if err := validateRuleException(RuleException{ID: id, Command: command}); err != nil {
-		return err
-	}
-	for index, existing := range c.RuleExceptions {
-		if existing.ID != id && existing.Command == command {
-			return errors.New("rule exception command already exists")
-		}
-		if existing.ID == id {
-			c.RuleExceptions[index].Command = command
-			return nil
-		}
-	}
-	return fmt.Errorf("rule exception %q does not exist", id)
-}
-
-func (c *Config) RemoveRuleException(id string) error {
-	if !validRuleExceptionID(id) {
-		return fmt.Errorf("invalid rule exception id %q", id)
-	}
-	for index, exception := range c.RuleExceptions {
-		if exception.ID == id {
-			c.RuleExceptions = append(c.RuleExceptions[:index], c.RuleExceptions[index+1:]...)
-			return nil
-		}
-	}
-	return fmt.Errorf("rule exception %q does not exist", id)
-}
-
-func validateRuleExceptions(exceptions []RuleException) error {
-	seenIDs := map[string]struct{}{}
-	seenCommands := map[string]struct{}{}
-	for _, exception := range exceptions {
-		if err := validateRuleException(exception); err != nil {
-			return err
-		}
-		if _, exists := seenIDs[exception.ID]; exists {
-			return fmt.Errorf("duplicate rule exception id %q", exception.ID)
-		}
-		if _, exists := seenCommands[exception.Command]; exists {
-			return errors.New("duplicate rule exception command")
-		}
-		seenIDs[exception.ID] = struct{}{}
-		seenCommands[exception.Command] = struct{}{}
-	}
-	return nil
-}
-
-func validateRuleException(exception RuleException) error {
-	if !validRuleExceptionID(exception.ID) {
-		return fmt.Errorf("invalid rule exception id %q", exception.ID)
-	}
-	if strings.TrimSpace(exception.Command) == "" || len(exception.Command) > maxRuleExceptionCommandBytes {
-		return errors.New("rule exception command must be non-empty and within the input limit")
-	}
-	return nil
-}
-
-func validRuleExceptionID(value string) bool {
-	if len(value) == 0 || len(value) > 64 || value[0] < 'a' || value[0] > 'z' {
+func safeProviderModel(value string) bool {
+	if value == "" || len(value) > 200 || strings.Contains(value, "://") {
 		return false
 	}
-	for _, character := range value[1:] {
-		if character >= 'a' && character <= 'z' || character >= '0' && character <= '9' || character == '-' || character == '_' {
-			continue
+	for _, character := range value {
+		if !(character >= 'a' && character <= 'z') && !(character >= 'A' && character <= 'Z') && !(character >= '0' && character <= '9') && !strings.ContainsRune("._:/@-", character) {
+			return false
 		}
-		return false
 	}
 	return true
-}
-
-func GlobalPath(home func() (string, error)) (string, error) {
-	return globalPath(home, os.Getenv)
-}
-
-func globalPath(home func() (string, error), env func(string) string) (string, error) {
-	base := env("XDG_CONFIG_HOME")
-	if base == "" || !filepath.IsAbs(base) {
-		value, err := home()
-		if err != nil {
-			return "", err
-		}
-		base = filepath.Join(value, ".config")
-	}
-	return filepath.Join(base, "solomon", "config.json"), nil
-}
-
-func Load(paths Paths) (Config, error) {
-	global, err := globalPath(paths.Home, paths.Env)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg, err := LoadGlobal(global)
-	if err != nil {
-		return Config{}, err
-	}
-	cwd, err := paths.CWD()
-	if err == nil {
-		if project, ok := projectPath(cwd); ok {
-			cfg, err = mergeApprovedProject(cfg, project)
-			if err != nil {
-				return Config{}, err
-			}
-		}
-	}
-	cfg, err = applySessionPrecedence(cfg, paths)
-	if err != nil {
-		return Config{}, err
-	}
-	return cfg, nil
-}
-
-func applySessionPrecedence(base Config, paths Paths) (Config, error) {
-	values, err := sessionValues(paths)
-	if err != nil {
-		return Config{}, err
-	}
-	return ApplySessionOverrides(base, values)
-}
-
-var sessionOverrideKeys = map[string]string{
-	"SOLOMON_MODE":                   "mode",
-	"SOLOMON_AUTO_APPLY_SAFE":        "auto_apply_safe",
-	"SOLOMON_CURATED_PACKS_ENABLED":  "curated_packs_enabled",
-	"SOLOMON_RISK_INTERRUPT":         "risk_interrupt",
-	"SOLOMON_LOCAL_LEARNING_ENABLED": "local_learning_enabled",
-	"SOLOMON_UNDO_ENABLED":           "undo_enabled",
-	"SOLOMON_UNDO_TTL_SECONDS":       "undo_ttl_seconds",
-}
-
-func sessionValues(paths Paths) (map[string]string, error) {
-	if paths.Environ == nil {
-		values := make(map[string]string, len(sessionOverrideKeys))
-		for key := range sessionOverrideKeys {
-			values[key] = paths.Env(key)
-		}
-		return values, nil
-	}
-	values := map[string]string{}
-	for _, entry := range paths.Environ() {
-		key, value, ok := strings.Cut(entry, "=")
-		if !ok || !strings.HasPrefix(key, "SOLOMON_") {
-			continue
-		}
-		if key == "SOLOMON_REGISTRY_ENABLED" || key == "SOLOMON_AUTO_UPDATE_ENABLED" {
-			continue
-		}
-		if _, exists := values[key]; exists {
-			return nil, fmt.Errorf("duplicate session override %q", key)
-		}
-		values[key] = value
-	}
-	return values, nil
-}
-
-func ApplySessionOverrides(cfg Config, values map[string]string) (Config, error) {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		value := values[key]
-		setting, ok := sessionOverrideKeys[key]
-		if !ok {
-			return Config{}, fmt.Errorf("unknown session override %q", key)
-		}
-		if value == "" {
-			continue
-		}
-		if setting != "mode" && setting != "undo_ttl_seconds" && value != "true" && value != "false" {
-			return Config{}, fmt.Errorf("invalid %s %q: must be true or false", key, value)
-		}
-		if err := cfg.Set(setting, value); err != nil {
-			return Config{}, fmt.Errorf("invalid %s %q: %w", key, value, err)
-		}
-	}
-	return cfg, nil
-}
-
-func LoadGlobal(path string) (Config, error) {
-	cfg := Default()
-	data, err := readConfigFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return cfg, nil
-	}
-	if err != nil {
-		return Config{}, err
-	}
-	return decode(data, cfg)
-}
-
-func projectPath(cwd string) (string, bool) {
-	for dir := cwd; ; dir = filepath.Dir(dir) {
-		candidate := filepath.Join(dir, ".solomon", "config.json")
-		info, err := os.Stat(candidate)
-		if err == nil && info.Mode().IsRegular() && trustedProject(candidate) {
-			return candidate, true
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", false
-		}
-	}
-}
-
-func trustedProject(path string) bool {
-	capabilities := filesystem.Current()
-	if !capabilities.Supports(filesystem.RestrictivePermissions) || !capabilities.Supports(filesystem.OwnerVerification) {
-		return false
-	}
-	configInfo, err := os.Lstat(path)
-	if err != nil || !configInfo.Mode().IsRegular() || !hasSecurePermissions(path, configInfo, false) {
-		return false
-	}
-	marker := filepath.Join(filepath.Dir(path), "trusted")
-	markerInfo, err := os.Lstat(marker)
-	if err != nil || !markerInfo.Mode().IsRegular() || !hasSecurePermissions(marker, markerInfo, false) {
-		return false
-	}
-	directory := filepath.Dir(marker)
-	directoryInfo, err := os.Lstat(directory)
-	if err != nil || !directoryInfo.IsDir() || !hasSecurePermissions(directory, directoryInfo, true) {
-		return false
-	}
-	return ownedByCurrentUser(path, configInfo) && ownedByCurrentUser(marker, markerInfo) && ownedByCurrentUser(directory, directoryInfo)
-}
-
-func mergeApprovedProject(base Config, path string) (Config, error) {
-	info, err := os.Lstat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return base, nil
-	}
-	if err != nil {
-		return Config{}, err
-	}
-	if !info.Mode().IsRegular() || !trustedProject(path) {
-		return base, nil
-	}
-	data, err := readConfigFile(path)
-	if err != nil {
-		return Config{}, err
-	}
-	return decode(data, base)
-}
-
-func decode(data []byte, base Config) (Config, error) {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return Config{}, fmt.Errorf("parse config: %w", err)
-	}
-	if fields == nil {
-		return Config{}, errors.New("parse config: configuration must be a JSON object")
-	}
-	delete(fields, "registry_enabled")
-	delete(fields, "auto_update_enabled")
-	version := 0
-	if value, ok := fields["schema_version"]; ok {
-		if bytes.Equal(value, []byte("null")) {
-			return Config{}, errors.New("parse config: schema_version must be an integer")
-		}
-		if err := json.Unmarshal(value, &version); err != nil {
-			return Config{}, fmt.Errorf("parse config: schema_version must be an integer: %w", err)
-		}
-	}
-	// curated_auto_correct was exposed but never controlled runtime behavior.
-	// Accept it only in legacy configurations so v7 retains strict unknown-field
-	// validation while older files can migrate cleanly.
-	if version <= 6 {
-		delete(fields, "curated_auto_correct")
-	}
-	filtered, err := json.Marshal(fields)
-	if err != nil {
-		return Config{}, fmt.Errorf("parse config: %w", err)
-	}
-	data = filtered
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&base); err != nil {
-		return Config{}, fmt.Errorf("parse config: %w", err)
-	}
-	migrated, err := migrate(base, version)
-	if err != nil {
-		return Config{}, err
-	}
-	base = migrated
-	if !validMode(base.Mode) {
-		return Config{}, fmt.Errorf("invalid mode %q", base.Mode)
-	}
-	if !validLearnedRuleAction(base.LearnedRuleActionCeiling) {
-		return Config{}, fmt.Errorf("invalid learned rule action ceiling %q", base.LearnedRuleActionCeiling)
-	}
-	if base.LearningRetentionDays < 1 || base.LearningRetentionDays > maxLearningRetentionDays {
-		return Config{}, fmt.Errorf("learning retention days must be between 1 and %d", maxLearningRetentionDays)
-	}
-	if base.UndoTTLSeconds < 1 || base.UndoTTLSeconds > maxUndoTTLSeconds {
-		return Config{}, fmt.Errorf("undo ttl seconds must be between 1 and %d", maxUndoTTLSeconds)
-	}
-	if base.LocalHistoryEnabled {
-		return Config{}, errors.New("local history is not supported")
-	}
-	if err := validateRuleExceptions(base.RuleExceptions); err != nil {
-		return Config{}, err
-	}
-	return base, nil
-}
-
-func readConfigFile(path string) ([]byte, error) {
-	// #nosec G304 -- These are the configured global or ownership-checked project configuration paths.
-	return os.ReadFile(path)
-}
-
-func migrate(cfg Config, version int) (Config, error) {
-	if version > CurrentSchemaVersion {
-		return Config{}, fmt.Errorf("unsupported configuration schema version %d", version)
-	}
-	for version < CurrentSchemaVersion {
-		switch version {
-		case 0:
-			cfg.RiskInterrupt = cfg.Mode == "interrupt"
-			cfg.SchemaVersion = 1
-			version = 1
-		case 1:
-			cfg.RiskInterrupt = cfg.Mode == "interrupt"
-			cfg.SchemaVersion = 2
-			version = 2
-		case 2:
-			cfg.SchemaVersion = 3
-			version = 3
-		case 3:
-			cfg.CuratedPacksEnabled = true
-			cfg.SchemaVersion = 4
-			version = 4
-		case 4:
-			// A schema migration must not retain authority to edit or block a
-			// command. Users can opt in again after reviewing the new policy.
-			if cfg.Mode == "rewrite" || cfg.Mode == "interrupt" {
-				cfg.Mode = "hint"
-				cfg.AutoApplySafe = false
-				cfg.RiskInterrupt = false
-			}
-			cfg.SchemaVersion = 5
-			version = 5
-		case 5:
-			// History was never wired to a production backend. Remove the
-			// old opt-in instead of retaining a configuration claim that the
-			// runtime cannot honor.
-			cfg.LocalHistoryEnabled = false
-			cfg.SchemaVersion = 6
-			version = 6
-		case 6:
-			// curated_auto_correct never influenced decisions. Drop it instead of
-			// preserving a configuration claim the runtime cannot honor.
-			cfg.SchemaVersion = 7
-			version = 7
-		default:
-			return Config{}, fmt.Errorf("unsupported configuration schema version %d", version)
-		}
-	}
-	return cfg, nil
-}
-
-func validMode(value string) bool {
-	return value == "hint" || value == "interrupt" || value == "off" || value == "rewrite"
-}
-
-func validLearnedRuleAction(value string) bool {
-	return value == "off" || value == "hint" || value == "rewrite"
-}
-
-func (c *Config) Set(key, value string) error {
-	switch key {
-	case "mode":
-		if !validMode(value) {
-			return errors.New("mode must be hint, interrupt, off, or rewrite")
-		}
-		c.Mode = value
-	case "auto_apply_safe", "curated_packs_enabled", "risk_interrupt", "local_learning_enabled", "undo_enabled", "display.cause", "display.change", "display.confidence", "display.risk", "display.consequence", "display.trace":
-		parsed, err := strconv.ParseBool(value)
-		if err != nil {
-			return err
-		}
-		switch key {
-		case "auto_apply_safe":
-			c.AutoApplySafe = parsed
-		case "curated_packs_enabled":
-			c.CuratedPacksEnabled = parsed
-		case "risk_interrupt":
-			c.RiskInterrupt = parsed
-		case "local_learning_enabled":
-			c.LocalLearningEnabled = parsed
-		case "undo_enabled":
-			c.UndoEnabled = parsed
-		case "display.cause":
-			c.Display.Cause = parsed
-		case "display.change":
-			c.Display.Change = parsed
-		case "display.confidence":
-			c.Display.Confidence = parsed
-		case "display.risk":
-			c.Display.Risk = parsed
-		case "display.consequence":
-			c.Display.Consequence = parsed
-		case "display.trace":
-			c.Display.Trace = parsed
-		}
-	case "learning_retention_days":
-		parsed, err := strconv.Atoi(value)
-		if err != nil || parsed < 1 || parsed > maxLearningRetentionDays {
-			return fmt.Errorf("learning_retention_days must be between 1 and %d", maxLearningRetentionDays)
-		}
-		c.LearningRetentionDays = parsed
-	case "undo_ttl_seconds":
-		parsed, err := strconv.Atoi(value)
-		if err != nil || parsed < 1 || parsed > maxUndoTTLSeconds {
-			return fmt.Errorf("undo_ttl_seconds must be between 1 and %d", maxUndoTTLSeconds)
-		}
-		c.UndoTTLSeconds = parsed
-	case "learned_rule_action_ceiling":
-		if !validLearnedRuleAction(value) {
-			return errors.New("learned_rule_action_ceiling must be off, hint, or rewrite")
-		}
-		c.LearnedRuleActionCeiling = value
-	default:
-		return fmt.Errorf("unknown configuration key %q", key)
-	}
-	return nil
-}
-
-func Write(path string, cfg Config) (result error) {
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	temporary, err := securetemp.Create(filepath.Dir(path), "."+filepath.Base(path)+".tmp-*")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		result = errors.Join(result, temporary.Cleanup())
-	}()
-	if _, err := temporary.Write(data); err != nil {
-		return err
-	}
-	return temporary.Commit(path)
 }
